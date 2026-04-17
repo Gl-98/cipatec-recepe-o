@@ -14,7 +14,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 /* ===== BANCO DE DADOS ===== */
-const db = new Database(path.join(__dirname, 'database.sqlite'));
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'database.sqlite');
+const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 
 // Cria tabelas se não existirem
