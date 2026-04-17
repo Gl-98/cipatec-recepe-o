@@ -149,6 +149,7 @@ if (!modelo) {
 }
 
 /* ===== MIDDLEWARE ===== */
+app.set('trust proxy', 1);
 app.use(express.json());
 
 // Sessão
@@ -173,10 +174,13 @@ passport.deserializeUser((id, done) => {
 // Google OAuth Strategy
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET &&
     !process.env.GOOGLE_CLIENT_ID.includes('COLE_SEU')) {
+  var googleCallbackURL = process.env.BASE_URL
+    ? process.env.BASE_URL + '/api/auth/google/callback'
+    : '/api/auth/google/callback';
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: '/api/auth/google/callback'
+    callbackURL: googleCallbackURL
   }, (accessToken, refreshToken, profile, done) => {
     const email = profile.emails && profile.emails[0] ? profile.emails[0].value.toLowerCase() : null;
     if (!email) return done(null, false);
@@ -200,10 +204,13 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET &&
 // Microsoft OAuth Strategy
 if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET &&
     !process.env.MICROSOFT_CLIENT_ID.includes('COLE_SEU')) {
+  var msCallbackURL = process.env.BASE_URL
+    ? process.env.BASE_URL + '/api/auth/microsoft/callback'
+    : '/api/auth/microsoft/callback';
   passport.use(new MicrosoftStrategy({
     clientID: process.env.MICROSOFT_CLIENT_ID,
     clientSecret: process.env.MICROSOFT_CLIENT_SECRET,
-    callbackURL: '/api/auth/microsoft/callback',
+    callbackURL: msCallbackURL,
     scope: ['user.read']
   }, (accessToken, refreshToken, profile, done) => {
     const email = profile.emails && profile.emails[0] ? profile.emails[0].value.toLowerCase() : null;
