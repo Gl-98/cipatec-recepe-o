@@ -1510,6 +1510,8 @@ body {
   transition: border-color .2s;
 }
 .cd-field input:focus { border-color: var(--accent); }
+.cd-field input[type="time"] { color: #fff; }
+.cd-field input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
 .cd-field select {
   width: 100%; padding: 9px 12px;
   background: rgba(255,255,255,.06);
