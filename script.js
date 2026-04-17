@@ -288,6 +288,7 @@
 
     // Permitir marcar como concluído por duplo clique, exceto para o modelo
     if (!card.fixed) {
+      el.draggable = true;
       el.addEventListener('dragstart', onDragStart);
       el.addEventListener('dragend', onDragEnd);
 
