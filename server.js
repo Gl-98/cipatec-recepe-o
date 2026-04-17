@@ -663,6 +663,24 @@ app.post('/api/cards/:id/comments', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+// GET /api/cards/search/history — busca histórico de pessoas pelo nome
+app.get('/api/cards/search/history', requireAuth, (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (q.length < 1) return res.json({ ok: true, results: [] });
+
+  // Busca todos os cartões cujo nome contém o termo (case-insensitive)
+  const cards = db.prepare(
+    `SELECT id, col, num, name, date, tipo_exame, empresa, funcao, telefone,
+            hora_chegada, hora_saida, senha, done, done_at, avatar, avatar_color
+     FROM cards
+     WHERE name LIKE ? AND col != 'modelo'
+     ORDER BY ROWID DESC
+     LIMIT 30`
+  ).all('%' + q + '%');
+
+  res.json({ ok: true, results: cards });
+});
+
 // GET /api/stats/dashboard — estatísticas do dashboard
 app.get('/api/stats/dashboard', requireAuth, (req, res) => {
   // Cards por coluna

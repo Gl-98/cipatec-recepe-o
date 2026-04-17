@@ -138,6 +138,85 @@ body {
   color: var(--text-muted); pointer-events: none;
 }
 
+/* ===== SEARCH HISTORY DROPDOWN ===== */
+.search-history-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0; right: 0;
+  max-height: 420px;
+  overflow-y: auto;
+  background: var(--glass-bg);
+  backdrop-filter: blur(22px) saturate(1.5);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 40px rgba(0,0,0,.45);
+  z-index: 500;
+  padding: 6px;
+}
+.search-history-dropdown.active { display: block; }
+
+.sh-person { border-radius: var(--radius-sm); overflow: hidden; }
+.sh-person + .sh-person { margin-top: 2px; }
+
+.sh-person-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background .15s;
+}
+.sh-person-header:hover { background: rgba(255,255,255,.06); }
+
+.sh-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .75rem; font-weight: 700; color: #fff;
+  flex-shrink: 0;
+}
+.sh-name { flex: 1; font-weight: 600; font-size: .92rem; color: var(--text); }
+.sh-count { font-size: .78rem; color: var(--text-muted); white-space: nowrap; }
+
+.sh-visits {
+  display: none;
+  padding: 0 8px 8px 54px;
+}
+.sh-person.expanded .sh-visits { display: block; }
+
+.sh-visit-row {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background .15s;
+  border-left: 3px solid var(--accent);
+  margin-bottom: 4px;
+  background: rgba(255,255,255,.03);
+}
+.sh-visit-row:hover { background: rgba(87,157,255,.1); }
+
+.sh-visit-top {
+  display: flex; align-items: center; gap: 8px;
+  font-size: .85rem; margin-bottom: 4px;
+}
+.sh-visit-date { font-weight: 600; color: var(--text); }
+.sh-visit-senha {
+  background: var(--accent); color: #fff;
+  padding: 1px 7px; border-radius: 10px;
+  font-size: .75rem; font-weight: 700;
+}
+.sh-visit-col {
+  color: var(--text-muted); font-size: .78rem;
+  margin-left: auto;
+}
+.sh-visit-col.done { color: #4ade80; }
+
+.sh-visit-details {
+  display: flex; flex-wrap: wrap; gap: 6px 14px;
+  font-size: .8rem; color: var(--text-muted);
+}
+.sh-visit-details b { color: var(--text); font-weight: 600; }
+
 .btn-criar {
   display: flex; align-items: center; gap: 6px;
   padding: 9px 18px; border-radius: var(--radius-sm);

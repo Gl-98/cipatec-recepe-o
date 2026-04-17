@@ -562,7 +562,113 @@
 
   /* ===== BUSCA EM TEMPO REAL ===== */
   var searchInput = document.getElementById('searchInput');
-  searchInput.addEventListener('input', applyFilters);
+  var searchHistoryDropdown = document.getElementById('searchHistoryDropdown');
+  var searchDebounce = null;
+
+  searchInput.addEventListener('input', function () {
+    applyFilters();
+
+    clearTimeout(searchDebounce);
+    var q = searchInput.value.trim();
+    if (q.length < 1) {
+      searchHistoryDropdown.classList.remove('active');
+      searchHistoryDropdown.innerHTML = '';
+      return;
+    }
+    searchDebounce = setTimeout(function () {
+      api('GET', '/api/cards/search/history?q=' + encodeURIComponent(q)).then(function (data) {
+        if (!data.ok || !data.results.length) {
+          searchHistoryDropdown.classList.remove('active');
+          searchHistoryDropdown.innerHTML = '';
+          return;
+        }
+        renderSearchHistory(data.results);
+      });
+    }, 250);
+  });
+
+  searchInput.addEventListener('focus', function () {
+    if (searchHistoryDropdown.children.length > 0) {
+      searchHistoryDropdown.classList.add('active');
+    }
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.header-search')) {
+      searchHistoryDropdown.classList.remove('active');
+    }
+  });
+
+  function renderSearchHistory(results) {
+    searchHistoryDropdown.innerHTML = '';
+
+    // Agrupa por nome (case-insensitive)
+    var grouped = {};
+    results.forEach(function (c) {
+      var key = c.name.toUpperCase();
+      if (!grouped[key]) grouped[key] = { name: c.name, avatar: c.avatar, avatar_color: c.avatar_color, visits: [] };
+      grouped[key].visits.push(c);
+    });
+
+    Object.keys(grouped).forEach(function (key) {
+      var g = grouped[key];
+      var item = document.createElement('div');
+      item.className = 'sh-person';
+
+      var header = document.createElement('div');
+      header.className = 'sh-person-header';
+      header.innerHTML =
+        '<span class="sh-avatar" style="background:' + (g.avatar_color || '#579DFF') + '">' + (g.avatar || '??') + '</span>' +
+        '<span class="sh-name">' + escapeHtml(g.name) + '</span>' +
+        '<span class="sh-count">' + g.visits.length + ' visita' + (g.visits.length > 1 ? 's' : '') + '</span>';
+      item.appendChild(header);
+
+      header.addEventListener('click', function () {
+        item.classList.toggle('expanded');
+      });
+
+      var visitsList = document.createElement('div');
+      visitsList.className = 'sh-visits';
+
+      g.visits.forEach(function (v) {
+        var colName = '';
+        COLUMNS.forEach(function (col) { if (col.id === v.col) colName = col.title; });
+
+        var row = document.createElement('div');
+        row.className = 'sh-visit-row';
+        row.innerHTML =
+          '<div class="sh-visit-top">' +
+            '<span class="sh-visit-date">' + (v.date || '—') + '</span>' +
+            (v.senha ? '<span class="sh-visit-senha">' + escapeHtml(v.senha) + '</span>' : '') +
+            '<span class="sh-visit-col ' + (v.done ? 'done' : '') + '">' + escapeHtml(colName) + '</span>' +
+          '</div>' +
+          '<div class="sh-visit-details">' +
+            (v.tipo_exame ? '<span><b>Exame:</b> ' + escapeHtml(v.tipo_exame) + '</span>' : '') +
+            (v.empresa ? '<span><b>Empresa:</b> ' + escapeHtml(v.empresa) + '</span>' : '') +
+            (v.funcao ? '<span><b>Função:</b> ' + escapeHtml(v.funcao) + '</span>' : '') +
+            (v.telefone ? '<span><b>Tel:</b> ' + escapeHtml(v.telefone) + '</span>' : '') +
+            (v.hora_chegada ? '<span><b>Chegada:</b> ' + v.hora_chegada + '</span>' : '') +
+            (v.hora_saida ? '<span><b>Saída:</b> ' + v.hora_saida + '</span>' : '') +
+            (v.done_at ? '<span><b>Finalizado:</b> ' + v.done_at + '</span>' : '') +
+          '</div>';
+
+        row.addEventListener('click', function (e) {
+          e.stopPropagation();
+          searchHistoryDropdown.classList.remove('active');
+          searchInput.value = '';
+          applyFilters();
+          openCardDetail(v.id, v.col);
+        });
+
+        visitsList.appendChild(row);
+      });
+
+      item.appendChild(visitsList);
+      searchHistoryDropdown.appendChild(item);
+    });
+
+    searchHistoryDropdown.classList.add('active');
+  }
 
   /* ===== PAINEL DE FILTRO ===== */
   var filterPanel = document.getElementById('filterPanel');
