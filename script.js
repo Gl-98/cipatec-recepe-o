@@ -965,14 +965,28 @@
   });
 
   // === ABRIR CAIXA DE ENTRADA ===
-  navInbox.addEventListener('click', function (e) {
-    e.preventDefault();
+  function openInbox() {
     inboxOverlay.classList.add('active');
     loadNotifications();
     api('PATCH', '/api/notifications/read-all').then(function () {
       navInboxBadge.style.display = 'none';
+      var bellBadge = document.getElementById('headerBellBadge');
+      if (bellBadge) bellBadge.style.display = 'none';
     });
+  }
+
+  navInbox.addEventListener('click', function (e) {
+    e.preventDefault();
+    openInbox();
   });
+
+  // Sino do header também abre a caixa de entrada
+  var headerBell = document.getElementById('headerBell');
+  if (headerBell) {
+    headerBell.addEventListener('click', function () {
+      openInbox();
+    });
+  }
 
   inboxClose.addEventListener('click', function () {
     inboxOverlay.classList.remove('active');
@@ -1012,11 +1026,14 @@
   }
 
   function updateInboxBadge(count) {
+    var bellBadge = document.getElementById('headerBellBadge');
     if (count > 0) {
       navInboxBadge.textContent = count > 99 ? '99+' : String(count);
       navInboxBadge.style.display = 'flex';
+      if (bellBadge) bellBadge.style.display = '';
     } else {
       navInboxBadge.style.display = 'none';
+      if (bellBadge) bellBadge.style.display = 'none';
     }
   }
 
@@ -1054,17 +1071,25 @@
   }
 
   function checkUnread() {
+    var totalBell = 0;
     api('GET', '/api/notifications?limit=1').then(function (data) {
-      if (data.ok) updateInboxBadge(data.unreadCount);
+      if (data.ok) {
+        updateInboxBadge(data.unreadCount);
+        totalBell += (data.unreadCount || 0);
+      }
     }).catch(function () {});
     // Também checa mensagens não lidas
     api('GET', '/api/messages/conversations').then(function (data) {
       if (data.ok && data.totalUnread > 0) {
         msgTabBadge.textContent = data.totalUnread > 99 ? '99+' : String(data.totalUnread);
         msgTabBadge.style.display = 'inline-flex';
+        totalBell += data.totalUnread;
       } else {
         msgTabBadge.style.display = 'none';
       }
+      // Atualiza badge do sino com total (notificações + mensagens)
+      var bellBadge = document.getElementById('headerBellBadge');
+      if (bellBadge) bellBadge.style.display = totalBell > 0 ? '' : 'none';
     }).catch(function () {});
   }
   setInterval(checkUnread, 5000);

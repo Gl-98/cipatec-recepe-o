@@ -67,12 +67,12 @@
       <!-- Nome do usuário -->
       <span class="header-user" id="headerUser"></span>
       <!-- Notificação -->
-      <span class="header-icon" title="Notificações">
+      <span class="header-icon" id="headerBell" title="Notificações" style="cursor:pointer;position:relative">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
           <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          <circle cx="18" cy="4" r="3" fill="#eb5a46" stroke="#eb5a46"/>
         </svg>
+        <span id="headerBellBadge" style="position:absolute;top:-2px;right:-2px;width:10px;height:10px;background:#eb5a46;border-radius:50%;display:none"></span>
       </span>
       <!-- Logout -->
       <button class="header-icon" id="btnLogout" title="Sair">
