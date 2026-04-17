@@ -511,19 +511,13 @@ app.patch('/api/cards/:id/move', requireAuth, (req, res) => {
   const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(cardId);
   if (!card) return res.status(404).json({ error: 'Cartão não encontrado' });
 
-  let order;
-  if (sortOrder != null) {
-    order = sortOrder;
-  } else {
-    // Calcula posição correta baseada no número da senha (num)
-    // Encontra a posição onde este cartão deveria ficar para manter a ordem numérica
-    const cardsInDestCol = db.prepare('SELECT id, num, sort_order FROM cards WHERE col = ? ORDER BY sort_order ASC').all(col);
-    order = cardsInDestCol.length; // por padrão, vai no final
-    for (let i = 0; i < cardsInDestCol.length; i++) {
-      if (card.num < cardsInDestCol[i].num) {
-        order = i;
-        break;
-      }
+  // Sempre calcula posição correta baseada no número (senha) para manter a ordem
+  const cardsInDestCol = db.prepare('SELECT id, num, sort_order FROM cards WHERE col = ? AND id != ? ORDER BY sort_order ASC').all(col, cardId);
+  let order = cardsInDestCol.length; // por padrão, vai no final
+  for (let i = 0; i < cardsInDestCol.length; i++) {
+    if (card.num < cardsInDestCol[i].num) {
+      order = i;
+      break;
     }
   }
 
@@ -537,6 +531,13 @@ app.patch('/api/cards/:id/move', requireAuth, (req, res) => {
     reordered.forEach((c, idx) => {
       db.prepare('UPDATE cards SET sort_order = ? WHERE id = ?').run(idx, c.id);
     });
+    // Recompacta coluna de origem também
+    if (card.col !== col) {
+      const srcReordered = db.prepare('SELECT id FROM cards WHERE col = ? ORDER BY sort_order ASC').all(card.col);
+      srcReordered.forEach((c, idx) => {
+        db.prepare('UPDATE cards SET sort_order = ? WHERE id = ?').run(idx, c.id);
+      });
+    }
   });
   moveTransaction();
 
