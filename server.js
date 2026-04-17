@@ -132,6 +132,8 @@ if (!cardCols.includes('empresa'))     db.exec("ALTER TABLE cards ADD COLUMN emp
 if (!cardCols.includes('tipo_exame'))  db.exec("ALTER TABLE cards ADD COLUMN tipo_exame TEXT DEFAULT ''");
 if (!cardCols.includes('funcao'))      db.exec("ALTER TABLE cards ADD COLUMN funcao TEXT DEFAULT ''");
 if (!cardCols.includes('done_at'))     db.exec("ALTER TABLE cards ADD COLUMN done_at TEXT DEFAULT NULL");
+if (!cardCols.includes('hora_chegada')) db.exec("ALTER TABLE cards ADD COLUMN hora_chegada TEXT DEFAULT ''");
+if (!cardCols.includes('hora_saida'))   db.exec("ALTER TABLE cards ADD COLUMN hora_saida TEXT DEFAULT ''");
 
 // Inicializa sequência se não existir
 const seqRow = db.prepare('SELECT value FROM config WHERE key = ?').get('next_seq');
@@ -590,7 +592,7 @@ app.patch('/api/cards/:id/fields', requireAuth, (req, res) => {
   const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(req.params.id);
   if (!card) return res.status(404).json({ error: 'Cartão não encontrado' });
 
-  const allowed = ['name', 'description', 'telefone', 'empresa', 'tipo_exame', 'funcao', 'col'];
+  const allowed = ['name', 'description', 'telefone', 'empresa', 'tipo_exame', 'funcao', 'col', 'hora_chegada', 'hora_saida'];
   const sets = [];
   const vals = [];
   for (const key of allowed) {

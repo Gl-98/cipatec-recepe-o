@@ -1309,6 +1309,14 @@ body {
 .cd-header-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
 .cd-header-left svg { flex-shrink: 0; }
 .cd-title { font-weight: 700; font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cd-title-input {
+  font-weight: 700; font-size: 1.15rem; color: var(--text);
+  background: transparent; border: 1px solid transparent; border-radius: 6px;
+  padding: 4px 8px; flex: 1; min-width: 0;
+  transition: border-color .2s;
+}
+.cd-title-input:hover { border-color: rgba(255,255,255,.15); }
+.cd-title-input:focus { border-color: var(--accent); outline: none; background: rgba(255,255,255,.05); }
 .cd-header-right { display: flex; align-items: center; gap: 8px; }
 
 .cd-done-btn {
@@ -1402,6 +1410,17 @@ body {
   transition: border-color .2s;
 }
 .cd-field input:focus { border-color: var(--accent); }
+.cd-field select {
+  width: 100%; padding: 9px 12px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 8px; color: var(--text);
+  font-size: .88rem; outline: none;
+  transition: border-color .2s;
+  cursor: pointer;
+}
+.cd-field select:focus { border-color: var(--accent); }
+.cd-field select option { background: #1e2330; color: var(--text); }
 .cd-field-row { display: flex; gap: 12px; }
 .cd-field-row .cd-field { flex: 1; }
 

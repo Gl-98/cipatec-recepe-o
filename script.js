@@ -1726,6 +1726,7 @@
   var cdEmpresa = document.getElementById('cdEmpresa');
   var cdTipoExame = document.getElementById('cdTipoExame');
   var cdFuncao = document.getElementById('cdFuncao');
+  var cdSaida = document.getElementById('cdSaida');
   var cdSaveFields = document.getElementById('cdSaveFields');
   var cdCommentInput = document.getElementById('cdCommentInput');
   var cdCommentSend = document.getElementById('cdCommentSend');
@@ -1756,10 +1757,11 @@
       }
       var c = data.card;
 
-      cdTitle.textContent = pad2(c.num) + ' – ' + c.name;
+      cdTitle.value = pad2(c.num) + ' – ' + c.name;
       cdNome.value = c.name || '';
       cdTelefone.value = c.telefone || '';
-      cdChegada.value = c.date || '';
+      cdChegada.value = c.hora_chegada || '';
+      cdSaida.value = c.hora_saida || '';
       cdEmpresa.value = c.empresa || '';
       cdTipoExame.value = c.tipo_exame || '';
       cdFuncao.value = c.funcao || '';
@@ -1893,13 +1895,21 @@
       telefone: cdTelefone.value.trim(),
       empresa: cdEmpresa.value.trim(),
       tipo_exame: cdTipoExame.value.trim(),
-      funcao: cdFuncao.value.trim()
+      funcao: cdFuncao.value.trim(),
+      hora_chegada: cdChegada.value.trim(),
+      hora_saida: cdSaida.value.trim()
     };
+    // Salvar título customizado se editado
+    var titleParts = cdTitle.value.split(' – ');
+    if (titleParts.length >= 2) {
+      body.name = titleParts.slice(1).join(' – ').trim();
+      cdNome.value = body.name;
+    }
     api('PATCH', '/api/cards/' + encodeURIComponent(currentDetailCardId) + '/fields', body).then(function(data) {
       if (data.ok) {
         cdSaveFields.textContent = '✓ Salvo!';
         setTimeout(function() { cdSaveFields.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg> Salvar alterações'; }, 1500);
-        cdTitle.textContent = cdTitle.textContent.split(' – ')[0] + ' – ' + cdNome.value.trim();
+        cdTitle.value = cdTitle.value.split(' – ')[0] + ' – ' + cdNome.value.trim();
         loadFromServer();
         // Recarrega atividade
         api('GET', '/api/cards/' + encodeURIComponent(currentDetailCardId) + '/detail').then(function(d) {
