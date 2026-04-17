@@ -442,6 +442,7 @@
     document.querySelectorAll('.column-body').forEach(function (a) {
       a.classList.remove('drag-over');
     });
+    document.querySelectorAll('.drop-indicator').forEach(function (el) { el.remove(); });
     dragCardId = null;
     dragSourceCol = null;
   }
@@ -449,6 +450,36 @@
   function onDragOver(e) {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+
+    // Mostra indicador de posição dentro da mesma coluna
+    var area = e.currentTarget;
+    if (!area || !dragCardId) return;
+
+    // Remove indicadores antigos
+    document.querySelectorAll('.drop-indicator').forEach(function (el) { el.remove(); });
+
+    var targetCol = area.dataset.col;
+    if (targetCol !== dragSourceCol) return;
+
+    var cards = Array.prototype.slice.call(area.querySelectorAll('.card'));
+    var otherCards = cards.filter(function (c) { return c.dataset.id !== dragCardId; });
+
+    var insertBefore = null;
+    for (var j = 0; j < otherCards.length; j++) {
+      var rect = otherCards[j].getBoundingClientRect();
+      if (e.clientY < rect.top + rect.height / 2) {
+        insertBefore = otherCards[j];
+        break;
+      }
+    }
+
+    var indicator = document.createElement('div');
+    indicator.className = 'drop-indicator';
+    if (insertBefore) {
+      area.insertBefore(indicator, insertBefore);
+    } else {
+      area.appendChild(indicator);
+    }
   }
 
   function onDragEnter(e) {
@@ -461,6 +492,7 @@
     var area = e.currentTarget;
     if (area && !area.contains(e.relatedTarget)) {
       area.classList.remove('drag-over');
+      document.querySelectorAll('.drop-indicator').forEach(function (el) { el.remove(); });
     }
   }
 
@@ -469,27 +501,42 @@
     var area = e.currentTarget;
     if (!area) return;
     area.classList.remove('drag-over');
+    // Remove indicadores de posição
+    document.querySelectorAll('.drop-indicator').forEach(function (el) { el.remove(); });
 
     var targetCol = area.dataset.col;
-    if (!dragCardId || targetCol === dragSourceCol) return;
+    if (!dragCardId) return;
 
-    // Calcula posição de inserção
-    var targetCards = area.querySelectorAll('.card');
-    var insertIdx = (state.cards[targetCol] || []).length;
-    for (var j = 0; j < targetCards.length; j++) {
-      var rect = targetCards[j].getBoundingClientRect();
-      if (e.clientY < rect.top + rect.height / 2) {
-        insertIdx = j;
-        break;
+    if (targetCol === dragSourceCol) {
+      // Reordenar dentro da mesma coluna
+      var cards = Array.prototype.slice.call(area.querySelectorAll('.card'));
+      var otherCards = cards.filter(function (c) { return c.dataset.id !== dragCardId; });
+
+      // Encontra posição de soltura entre os outros cartões
+      var insertAt = otherCards.length;
+      for (var j = 0; j < otherCards.length; j++) {
+        var rect = otherCards[j].getBoundingClientRect();
+        if (e.clientY < rect.top + rect.height / 2) {
+          insertAt = j;
+          break;
+        }
       }
-    }
 
-    api('PATCH', '/api/cards/' + encodeURIComponent(dragCardId) + '/move', {
-      col: targetCol,
-      sortOrder: insertIdx
-    }).then(function () {
-      loadFromServer();
-    });
+      // Monta nova ordem
+      var newOrder = otherCards.map(function (c) { return c.dataset.id; });
+      newOrder.splice(insertAt, 0, dragCardId);
+
+      api('PUT', '/api/cards/reorder', { col: targetCol, cardIds: newOrder }).then(function () {
+        loadFromServer();
+      });
+    } else {
+      // Mover entre colunas — servidor auto-ordena por número da senha
+      api('PATCH', '/api/cards/' + encodeURIComponent(dragCardId) + '/move', {
+        col: targetCol
+      }).then(function () {
+        loadFromServer();
+      });
+    }
   }
 
   /* ===== CONFIRMAR REMOÇÃO ===== */
