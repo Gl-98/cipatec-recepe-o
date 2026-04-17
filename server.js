@@ -134,11 +134,22 @@ if (!cardCols.includes('funcao'))      db.exec("ALTER TABLE cards ADD COLUMN fun
 if (!cardCols.includes('done_at'))     db.exec("ALTER TABLE cards ADD COLUMN done_at TEXT DEFAULT NULL");
 if (!cardCols.includes('hora_chegada')) db.exec("ALTER TABLE cards ADD COLUMN hora_chegada TEXT DEFAULT ''");
 if (!cardCols.includes('hora_saida'))   db.exec("ALTER TABLE cards ADD COLUMN hora_saida TEXT DEFAULT ''");
+if (!cardCols.includes('senha'))        db.exec("ALTER TABLE cards ADD COLUMN senha TEXT DEFAULT ''");
 
 // Inicializa sequência se não existir
 const seqRow = db.prepare('SELECT value FROM config WHERE key = ?').get('next_seq');
 if (!seqRow) {
   db.prepare('INSERT INTO config (key, value) VALUES (?, ?)').run('next_seq', '1');
+}
+// Sequências separadas por tipo
+if (!db.prepare('SELECT value FROM config WHERE key = ?').get('next_seq_p')) {
+  db.prepare('INSERT INTO config (key, value) VALUES (?, ?)').run('next_seq_p', '1');
+}
+if (!db.prepare('SELECT value FROM config WHERE key = ?').get('next_seq_a')) {
+  db.prepare('INSERT INTO config (key, value) VALUES (?, ?)').run('next_seq_a', '1');
+}
+if (!db.prepare('SELECT value FROM config WHERE key = ?').get('next_seq_t')) {
+  db.prepare('INSERT INTO config (key, value) VALUES (?, ?)').run('next_seq_t', '1');
 }
 
 // Insere cartão modelo se não existir
@@ -434,6 +445,7 @@ app.get('/api/cards', requireAuth, (req, res) => {
     const card = {
       id: c.id,
       num: c.num,
+      senha: c.senha || '',
       name: c.name,
       date: c.date,
       avatar: c.avatar,
@@ -455,22 +467,36 @@ app.post('/api/cards', requireAuth, (req, res) => {
     return res.status(400).json({ error: 'Campos obrigatórios: id, col, name' });
   }
 
+  // Gera senha automática baseada no tipo
+  let senhaPrefix = 'P';
+  let seqKey = 'next_seq_p';
+  if (col === 'preferencial') {
+    senhaPrefix = 'A';
+    seqKey = 'next_seq_a';
+  } else if (col === 'autorizacao') {
+    senhaPrefix = 'T';
+    seqKey = 'next_seq_t';
+  }
+  const seqVal = parseInt(db.prepare('SELECT value FROM config WHERE key = ?').get(seqKey).value);
+  const senha = senhaPrefix + seqVal;
+
   // Pega próxima ordem para a coluna
   const maxOrder = db.prepare('SELECT COALESCE(MAX(sort_order), -1) as m FROM cards WHERE col = ?').get(col).m;
 
   db.prepare(`
-    INSERT INTO cards (id, col, num, name, date, avatar, avatar_color, done, fixed, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
-  `).run(id, col, num, name, date, avatar, avatarColor, maxOrder + 1);
+    INSERT INTO cards (id, col, num, name, date, avatar, avatar_color, done, fixed, sort_order, senha)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)
+  `).run(id, col, num, name, date, avatar, avatarColor, maxOrder + 1, senha);
 
-  // Atualiza sequência
+  // Atualiza sequências
   db.prepare('UPDATE config SET value = ? WHERE key = ?').run(String(num + 1), 'next_seq');
+  db.prepare('UPDATE config SET value = ? WHERE key = ?').run(String(seqVal + 1), seqKey);
 
   // Notificação
   const actorName = req.session.userName || 'Alguém';
-  notify('card_created', actorName + ' criou o cartão "' + name + '" em ' + colName(col), { cardName: name, toCol: col, actorName });
+  notify('card_created', actorName + ' criou o cartão "' + name + '" (' + senha + ') em ' + colName(col), { cardName: name, toCol: col, actorName });
 
-  res.json({ ok: true });
+  res.json({ ok: true, senha });
 });
 
 // PATCH /api/cards/:id/move — move cartão para outra coluna

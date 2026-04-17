@@ -270,7 +270,7 @@
     el.innerHTML =
       '<div class="card-top">' +
         '<span class="card-avatar" style="background:' + avatarBg + '">' + escapeHtml(avatarLetters) + '</span>' +
-        '<span class="card-title' + doneClass + '">' + escapeHtml(pad2(card.num) + ' – ' + card.name) + '</span>' +
+        '<span class="card-title' + doneClass + '">' + escapeHtml((card.senha || pad2(card.num)) + ' – ' + card.name) + '</span>' +
         '<span class="card-badge ' + badgeClass + '">' + badgeLabel + '</span>' +
       '</div>' +
       '<div class="card-row">' +
@@ -1757,7 +1757,7 @@
       }
       var c = data.card;
 
-      cdTitle.value = pad2(c.num) + ' – ' + c.name;
+      cdTitle.value = (c.senha || pad2(c.num)) + ' – ' + c.name;
       cdNome.value = c.name || '';
       cdTelefone.value = c.telefone || '';
       cdChegada.value = c.hora_chegada || '';
