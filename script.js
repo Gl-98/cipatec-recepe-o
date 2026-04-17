@@ -1079,7 +1079,7 @@
 
   function showChatPick() {
     chatConvos.style.display = 'none';
-    chatPickUser.style.display = '';
+    chatPickUser.style.display = 'flex';
     chatView.style.display = 'none';
     loadUserList();
   }
