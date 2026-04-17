@@ -663,6 +663,54 @@ app.post('/api/cards/:id/comments', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+// GET /api/stats/dashboard — estatísticas do dashboard
+app.get('/api/stats/dashboard', requireAuth, (req, res) => {
+  // Cards por coluna
+  const cardsByCol = db.prepare("SELECT col, COUNT(*) as count FROM cards WHERE fixed = 0 GROUP BY col").all();
+  const colCounts = {};
+  cardsByCol.forEach(r => { colCounts[r.col] = r.count; });
+
+  // Total de cards ativos e concluídos
+  const totalCards = db.prepare("SELECT COUNT(*) as c FROM cards WHERE fixed = 0").get().c;
+  const totalDone = db.prepare("SELECT COUNT(*) as c FROM cards WHERE done = 1 AND fixed = 0").get().c;
+  const totalPending = totalCards - totalDone;
+
+  // Concluídos hoje
+  const today = new Date().toISOString().substring(0, 10);
+  const doneToday = db.prepare("SELECT COUNT(*) as c FROM cards WHERE done = 1 AND done_at LIKE ?").get(today + '%').c;
+
+  // Por tipo de exame
+  const byExame = db.prepare("SELECT tipo_exame, COUNT(*) as count FROM cards WHERE fixed = 0 AND tipo_exame != '' GROUP BY tipo_exame").all();
+
+  // Atividades recentes (últimas 50)
+  const recentActivity = db.prepare(`
+    SELECT ca.user_name, ca.action, ca.created_at, c.name as card_name
+    FROM card_activity ca
+    LEFT JOIN cards c ON c.id = ca.card_id
+    ORDER BY ca.created_at DESC LIMIT 50
+  `).all();
+
+  // Atividade por usuário (contagem)
+  const activityByUser = db.prepare(`
+    SELECT user_name, COUNT(*) as count
+    FROM card_activity
+    GROUP BY user_name
+    ORDER BY count DESC
+  `).all();
+
+  res.json({
+    ok: true,
+    colCounts,
+    totalCards,
+    totalDone,
+    totalPending,
+    doneToday,
+    byExame,
+    recentActivity,
+    activityByUser
+  });
+});
+
 // GET /api/history/completed — histórico de concluídos agrupado por dia
 app.get('/api/history/completed', requireAuth, (req, res) => {
   const rows = db.prepare("SELECT * FROM cards WHERE done = 1 AND done_at IS NOT NULL ORDER BY done_at DESC").all();

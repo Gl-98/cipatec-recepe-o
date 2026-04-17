@@ -25,7 +25,7 @@
     <span class="header-title">CADASTRADO 027</span>
 
     <!-- Ícone gráfico -->
-    <span class="header-icon" title="Estatísticas">
+    <span class="header-icon" id="btnDashboard" title="Estatísticas" style="cursor:pointer">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="12" width="4" height="9" rx="1" fill="rgba(87,157,255,.3)"/>
         <rect x="10" y="7" width="4" height="14" rx="1" fill="rgba(97,189,79,.3)"/>
@@ -159,6 +159,63 @@
 
   <!-- BOARD -->
   <div class="board" id="board"></div>
+
+  <!-- PAINEL DASHBOARD -->
+  <div class="dash-overlay" id="dashOverlay">
+    <div class="dash-panel">
+      <div class="dash-header">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round">
+            <rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/>
+          </svg>
+          Dashboard
+        </h3>
+        <button class="dash-close" id="dashClose">&times;</button>
+      </div>
+
+      <!-- Cards de resumo -->
+      <div class="dash-cards">
+        <div class="dash-stat-card dash-stat-total">
+          <span class="dash-stat-num" id="dashTotal">0</span>
+          <span class="dash-stat-label">Total</span>
+        </div>
+        <div class="dash-stat-card dash-stat-pending">
+          <span class="dash-stat-num" id="dashPending">0</span>
+          <span class="dash-stat-label">Pendentes</span>
+        </div>
+        <div class="dash-stat-card dash-stat-done">
+          <span class="dash-stat-num" id="dashDone">0</span>
+          <span class="dash-stat-label">Concluídos</span>
+        </div>
+        <div class="dash-stat-card dash-stat-today">
+          <span class="dash-stat-num" id="dashToday">0</span>
+          <span class="dash-stat-label">Hoje</span>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="dash-tabs">
+        <button class="dash-tab active" data-dtab="columns">Por Coluna</button>
+        <button class="dash-tab" data-dtab="exame">Por Exame</button>
+        <button class="dash-tab" data-dtab="users">Por Usuário</button>
+        <button class="dash-tab" data-dtab="history">Histórico</button>
+      </div>
+
+      <!-- Conteúdos das tabs -->
+      <div class="dash-tab-content active" id="dtabColumns">
+        <div class="dash-bar-list" id="dashColBars"></div>
+      </div>
+      <div class="dash-tab-content" id="dtabExame">
+        <div class="dash-bar-list" id="dashExameBars"></div>
+      </div>
+      <div class="dash-tab-content" id="dtabUsers">
+        <div class="dash-bar-list" id="dashUserBars"></div>
+      </div>
+      <div class="dash-tab-content" id="dtabHistory">
+        <div class="dash-activity-list" id="dashActivityList"></div>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL DETALHADO DO CARTÃO -->
   <div class="card-detail-overlay" id="cardDetailOverlay">

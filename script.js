@@ -2008,4 +2008,150 @@
     return colId;
   }
 
+  /* ===== DASHBOARD ===== */
+  var dashOverlay = document.getElementById('dashOverlay');
+  var dashClose = document.getElementById('dashClose');
+  var btnDashboard = document.getElementById('btnDashboard');
+
+  var DASH_COLORS = ['#579DFF', '#61bd4f', '#f5cd47', '#eb5a46', '#c377e0', '#ff8ed4', '#00c2e0', '#51e898'];
+
+  var COL_NAMES = {
+    normal: 'Senha Normal',
+    preferencial: 'Preferencial',
+    autorizacao: 'Aguard. Autorização',
+    medico: 'Atend. Médico',
+    finalizado: 'Finalizado'
+  };
+
+  if (btnDashboard) {
+    btnDashboard.addEventListener('click', function() {
+      dashOverlay.classList.add('active');
+      loadDashboard();
+    });
+  }
+  if (dashClose) {
+    dashClose.addEventListener('click', function() {
+      dashOverlay.classList.remove('active');
+    });
+  }
+  if (dashOverlay) {
+    dashOverlay.addEventListener('click', function(e) {
+      if (e.target === dashOverlay) dashOverlay.classList.remove('active');
+    });
+  }
+
+  // Tabs do dashboard
+  var dashTabs = document.querySelectorAll('.dash-tab[data-dtab]');
+  dashTabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      dashTabs.forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      document.querySelectorAll('.dash-tab-content').forEach(function(c) { c.classList.remove('active'); });
+      var target = document.getElementById('dtab' + capitalize(tab.dataset.dtab));
+      if (target) target.classList.add('active');
+    });
+  });
+
+  function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  function loadDashboard() {
+    api('GET', '/api/stats/dashboard').then(function(data) {
+      if (!data.ok) return;
+
+      // Stat cards
+      document.getElementById('dashTotal').textContent = data.totalCards;
+      document.getElementById('dashPending').textContent = data.totalPending;
+      document.getElementById('dashDone').textContent = data.totalDone;
+      document.getElementById('dashToday').textContent = data.doneToday;
+
+      // Barras por coluna
+      var colBars = document.getElementById('dashColBars');
+      colBars.innerHTML = '';
+      var maxCol = 0;
+      var colEntries = Object.keys(data.colCounts).filter(function(k) { return k !== 'modelo'; });
+      colEntries.forEach(function(k) { if (data.colCounts[k] > maxCol) maxCol = data.colCounts[k]; });
+      colEntries.forEach(function(k, i) {
+        var pct = maxCol > 0 ? (data.colCounts[k] / maxCol * 100) : 0;
+        var color = DASH_COLORS[i % DASH_COLORS.length];
+        var label = COL_NAMES[k] || k;
+        colBars.innerHTML +=
+          '<div class="dash-bar-row">' +
+            '<span class="dash-bar-label">' + escapeHtml(label) + '</span>' +
+            '<div class="dash-bar-track"><div class="dash-bar-fill" style="width:' + pct + '%;background:' + color + '"></div></div>' +
+            '<span class="dash-bar-value">' + data.colCounts[k] + '</span>' +
+          '</div>';
+      });
+      if (colEntries.length === 0) colBars.innerHTML = '<div class="cd-empty">Nenhum dado</div>';
+
+      // Barras por tipo de exame
+      var exameBars = document.getElementById('dashExameBars');
+      exameBars.innerHTML = '';
+      var maxExame = 0;
+      data.byExame.forEach(function(e) { if (e.count > maxExame) maxExame = e.count; });
+      data.byExame.forEach(function(e, i) {
+        var pct = maxExame > 0 ? (e.count / maxExame * 100) : 0;
+        var color = DASH_COLORS[(i + 2) % DASH_COLORS.length];
+        exameBars.innerHTML +=
+          '<div class="dash-bar-row">' +
+            '<span class="dash-bar-label">' + escapeHtml(e.tipo_exame) + '</span>' +
+            '<div class="dash-bar-track"><div class="dash-bar-fill" style="width:' + pct + '%;background:' + color + '"></div></div>' +
+            '<span class="dash-bar-value">' + e.count + '</span>' +
+          '</div>';
+      });
+      if (data.byExame.length === 0) exameBars.innerHTML = '<div class="cd-empty">Nenhum tipo de exame registrado</div>';
+
+      // Barras por usuário
+      var userBars = document.getElementById('dashUserBars');
+      userBars.innerHTML = '';
+      var maxUser = 0;
+      data.activityByUser.forEach(function(u) { if (u.count > maxUser) maxUser = u.count; });
+      data.activityByUser.forEach(function(u, i) {
+        var pct = maxUser > 0 ? (u.count / maxUser * 100) : 0;
+        var color = DASH_COLORS[(i + 1) % DASH_COLORS.length];
+        userBars.innerHTML +=
+          '<div class="dash-bar-row">' +
+            '<span class="dash-bar-label">' + escapeHtml(u.user_name) + '</span>' +
+            '<div class="dash-bar-track"><div class="dash-bar-fill" style="width:' + pct + '%;background:' + color + '"></div></div>' +
+            '<span class="dash-bar-value">' + u.count + ' ações</span>' +
+          '</div>';
+      });
+      if (data.activityByUser.length === 0) userBars.innerHTML = '<div class="cd-empty">Nenhuma atividade</div>';
+
+      // Histórico de atividades recentes
+      var actList = document.getElementById('dashActivityList');
+      actList.innerHTML = '';
+      if (data.recentActivity.length === 0) {
+        actList.innerHTML = '<div class="cd-empty">Nenhuma atividade ainda</div>';
+        return;
+      }
+      data.recentActivity.forEach(function(a) {
+        var initials = (a.user_name || '').trim().split(/\s+/).length >= 2
+          ? ((a.user_name || '').trim().split(/\s+/)[0][0] + (a.user_name || '').trim().split(/\s+/).slice(-1)[0][0]).toUpperCase()
+          : (a.user_name || '??').substring(0, 2).toUpperCase();
+        var color = DASH_COLORS[Math.abs(hashCode(a.user_name || '')) % DASH_COLORS.length];
+        var timeStr = formatRelativeTime(a.created_at);
+        var item = document.createElement('div');
+        item.className = 'dash-act-item';
+        item.innerHTML =
+          '<div class="dash-act-avatar" style="background:' + color + '">' + escapeHtml(initials) + '</div>' +
+          '<div class="dash-act-content">' +
+            '<span class="dash-act-user">' + escapeHtml(a.user_name) + '</span> ' +
+            '<span class="dash-act-action">' + escapeHtml(a.action) + '</span>' +
+            (a.card_name ? ' <span class="dash-act-card">"' + escapeHtml(a.card_name) + '"</span>' : '') +
+            '<span class="dash-act-time">' + escapeHtml(timeStr) + '</span>' +
+          '</div>';
+        actList.appendChild(item);
+      });
+    });
+  }
+
+  function hashCode(str) {
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash |= 0;
+    }
+    return hash;
+  }
+
 })();

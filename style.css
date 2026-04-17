@@ -1568,3 +1568,114 @@ body {
   .cd-sidebar { max-height: none; }
   .card-detail-modal { width: 98vw; }
 }
+
+/* ===== DASHBOARD PANEL ===== */
+.dash-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.55); backdrop-filter: blur(6px);
+  justify-content: center; align-items: flex-start; padding: 40px 16px;
+}
+.dash-overlay.active { display: flex; }
+.dash-panel {
+  background: var(--glass); border: 1px solid var(--glass-border);
+  border-radius: 16px; width: 600px; max-width: 95vw;
+  max-height: 85vh; display: flex; flex-direction: column;
+  box-shadow: 0 24px 80px rgba(0,0,0,.4);
+  animation: slideDown .25s ease;
+}
+@keyframes slideDown {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.dash-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--glass-border);
+}
+.dash-header h3 {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 1.05rem; font-weight: 700; color: var(--text); margin: 0;
+}
+.dash-close {
+  width: 32px; height: 32px; border: none; border-radius: 8px;
+  background: rgba(255,255,255,.06); color: var(--text-muted);
+  font-size: 1.3rem; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; transition: .15s;
+}
+.dash-close:hover { background: rgba(235,90,70,.2); color: #eb5a46; }
+
+/* Stat cards */
+.dash-cards {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  padding: 16px 20px;
+}
+.dash-stat-card {
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px; padding: 14px 12px; text-align: center;
+}
+.dash-stat-num { display: block; font-size: 1.6rem; font-weight: 800; }
+.dash-stat-label { font-size: .72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+.dash-stat-total .dash-stat-num { color: var(--accent); }
+.dash-stat-pending .dash-stat-num { color: #f5cd47; }
+.dash-stat-done .dash-stat-num { color: #61bd4f; }
+.dash-stat-today .dash-stat-num { color: #c377e0; }
+
+/* Tabs */
+.dash-tabs {
+  display: flex; gap: 4px; padding: 0 20px;
+  border-bottom: 1px solid var(--glass-border);
+}
+.dash-tab {
+  padding: 10px 16px; border: none; background: none;
+  color: var(--text-muted); font-size: .82rem; font-weight: 600;
+  cursor: pointer; border-bottom: 2px solid transparent; transition: .15s;
+}
+.dash-tab:hover { color: var(--text); }
+.dash-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Tab content */
+.dash-tab-content { display: none; padding: 16px 20px; overflow-y: auto; flex: 1; }
+.dash-tab-content.active { display: block; }
+
+/* Bar chart rows */
+.dash-bar-row {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+}
+.dash-bar-label {
+  width: 140px; font-size: .82rem; color: var(--text); font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0;
+}
+.dash-bar-track {
+  flex: 1; height: 24px; background: rgba(255,255,255,.05);
+  border-radius: 6px; overflow: hidden; position: relative;
+}
+.dash-bar-fill {
+  height: 100%; border-radius: 6px; transition: width .4s ease;
+  min-width: 2px;
+}
+.dash-bar-value {
+  width: 36px; text-align: right; font-size: .82rem;
+  font-weight: 700; color: var(--text-muted); flex-shrink: 0;
+}
+
+/* Activity list */
+.dash-activity-list { max-height: 400px; overflow-y: auto; }
+.dash-act-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.dash-act-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--accent); color: #fff; font-size: .65rem;
+  font-weight: 700; display: flex; align-items: center;
+  justify-content: center; flex-shrink: 0;
+}
+.dash-act-content { flex: 1; min-width: 0; }
+.dash-act-user { font-weight: 700; font-size: .82rem; color: var(--text); }
+.dash-act-action { font-size: .8rem; color: var(--text-muted); }
+.dash-act-card { color: var(--accent); font-weight: 600; }
+.dash-act-time { font-size: .72rem; color: var(--text-muted); display: block; margin-top: 2px; }
+
+@media (max-width: 500px) {
+  .dash-cards { grid-template-columns: repeat(2, 1fr); }
+  .dash-bar-label { width: 90px; font-size: .75rem; }
+}
