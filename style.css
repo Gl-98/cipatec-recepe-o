@@ -464,6 +464,10 @@ body {
   overflow-x: auto; min-height: calc(100vh - 56px - 60px);
   align-items: flex-start;
 }
+.board::-webkit-scrollbar { height: 10px; }
+.board::-webkit-scrollbar-track { background: rgba(255,255,255,.04); border-radius: 10px; }
+.board::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); border-radius: 10px; }
+.board::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.3); }
 
 /* === COLUNA (glass) === */
 .column {
@@ -502,8 +506,10 @@ body {
   display: flex; flex-direction: column; gap: 8px;
   overflow-y: auto; max-height: 70vh;
 }
-.column-body::-webkit-scrollbar { width: 5px; }
-.column-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 10px; }
+.column-body::-webkit-scrollbar { width: 8px; }
+.column-body::-webkit-scrollbar-track { background: rgba(255,255,255,.04); border-radius: 10px; }
+.column-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); border-radius: 10px; }
+.column-body::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.3); }
 
 /* === CARD (glass) === */
 .card {
