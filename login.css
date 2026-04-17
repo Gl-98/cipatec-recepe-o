@@ -1,0 +1,364 @@
+/* === VARIÁVEIS === */
+:root {
+  --bg: #0d1b2a;
+  --text: #e0e6ed;
+  --text-muted: #8b9bb4;
+  --accent: #579DFF;
+  --accent-glow: rgba(87, 157, 255, .35);
+  --green: #61BD4F;
+  --orange: #F2D600;
+  --red: #eb5a46;
+  --purple: #c377e0;
+  --glass-bg: rgba(18, 36, 58, .45);
+  --glass-border: rgba(255, 255, 255, .08);
+  --glass-shadow: 0 8px 32px rgba(0,0,0,.35);
+  --glass-blur: 20px;
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+
+/* === RESET === */
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+/* === ANIMATED BACKGROUND === */
+.bg-animation {
+  position: fixed; inset: 0; z-index: 0;
+  overflow: hidden; pointer-events: none;
+}
+.blob {
+  position: absolute; border-radius: 50%;
+  filter: blur(110px); opacity: .30;
+  animation: blobMove 20s ease-in-out infinite alternate;
+}
+.blob-1 {
+  width: 450px; height: 450px;
+  background: radial-gradient(circle, #579DFF 0%, transparent 70%);
+  top: -15%; left: 5%;
+  animation-duration: 22s;
+}
+.blob-2 {
+  width: 380px; height: 380px;
+  background: radial-gradient(circle, #c377e0 0%, transparent 70%);
+  top: 55%; right: -8%;
+  animation-duration: 26s; animation-delay: -4s;
+}
+.blob-3 {
+  width: 320px; height: 320px;
+  background: radial-gradient(circle, #61BD4F 0%, transparent 70%);
+  bottom: -10%; left: 40%;
+  animation-duration: 24s; animation-delay: -8s;
+}
+.blob-4 {
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, #F2D600 0%, transparent 70%);
+  top: 20%; left: 60%;
+  animation-duration: 28s; animation-delay: -2s; opacity: .18;
+}
+.blob-5 {
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, #eb5a46 0%, transparent 70%);
+  top: 70%; left: 10%;
+  animation-duration: 30s; animation-delay: -6s; opacity: .15;
+}
+
+@keyframes blobMove {
+  0%   { transform: translate(0, 0) scale(1); }
+  25%  { transform: translate(60px, -40px) scale(1.1); }
+  50%  { transform: translate(-40px, 50px) scale(.95); }
+  75%  { transform: translate(30px, 30px) scale(1.05); }
+  100% { transform: translate(-50px, -30px) scale(1); }
+}
+
+/* === PARTÍCULAS FLUTUANTES === */
+.particles {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none; overflow: hidden;
+}
+.particle {
+  position: absolute;
+  width: 4px; height: 4px;
+  background: rgba(87, 157, 255, .3);
+  border-radius: 50%;
+  animation: particleFloat linear infinite;
+}
+@keyframes particleFloat {
+  0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+}
+
+/* === CONTAINER === */
+.auth-container {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 20px;
+  width: 100%; max-width: 440px;
+}
+
+/* === LOGO === */
+.auth-logo {
+  text-align: center; margin-bottom: 28px;
+}
+.logo-img {
+  width: 320px; max-width: 85vw; height: auto;
+  margin-bottom: 10px;
+  mix-blend-mode: screen;
+  opacity: .92;
+  mask-image: radial-gradient(ellipse 85% 80% at 50% 45%, black 50%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 85% 80% at 50% 45%, black 50%, transparent 100%);
+}
+
+/* === CARD AUTH (glass) === */
+.auth-card {
+  width: 100%;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--glass-shadow), 0 0 60px rgba(87,157,255,.04);
+  padding: 0 28px 28px;
+  animation: cardIn .5s ease;
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(30px) scale(.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* === ABAS === */
+.auth-tabs {
+  display: flex; border-bottom: 1px solid var(--glass-border);
+  margin: 0 -28px; padding: 0 28px;
+}
+.auth-tab {
+  flex: 1; padding: 16px 0;
+  background: none; border: none; cursor: pointer;
+  font-size: .95rem; font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  transition: .25s;
+}
+.auth-tab:hover { color: var(--text); }
+.auth-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* === FORM === */
+.auth-form { padding-top: 20px; }
+.auth-form.hidden { display: none; }
+
+.form-group { margin-bottom: 16px; }
+.form-group label {
+  display: block; margin-bottom: 6px;
+  font-size: .82rem; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: .3px;
+}
+
+.input-wrap {
+  position: relative; display: flex; align-items: center;
+}
+.input-icon {
+  position: absolute; left: 12px;
+  color: var(--text-muted); pointer-events: none;
+  transition: .25s;
+}
+.input-wrap input {
+  width: 100%; padding: 12px 42px 12px 40px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  background: rgba(255,255,255,.05);
+  backdrop-filter: blur(8px);
+  color: var(--text); font-size: .95rem;
+  outline: none; transition: .25s;
+}
+.input-wrap input::placeholder { color: rgba(139,155,180,.6); }
+.input-wrap input:focus {
+  border-color: var(--accent);
+  background: rgba(87,157,255,.06);
+  box-shadow: 0 0 0 3px rgba(87,157,255,.12);
+}
+.input-wrap input:focus ~ .input-icon,
+.input-wrap input:focus + .input-icon { color: var(--accent); }
+
+/* Toggle password */
+.toggle-pass {
+  position: absolute; right: 10px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); padding: 4px;
+  border-radius: 6px; transition: .2s;
+  display: flex; align-items: center;
+}
+.toggle-pass:hover { color: var(--text); background: rgba(255,255,255,.06); }
+
+/* Password strength */
+.password-strength {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 8px;
+}
+.strength-bar {
+  flex: 1; height: 4px; border-radius: 4px;
+  background: rgba(255,255,255,.08); overflow: hidden;
+}
+.strength-fill {
+  height: 100%; width: 0; border-radius: 4px;
+  transition: width .3s, background .3s;
+}
+.strength-label {
+  font-size: .72rem; font-weight: 600; min-width: 50px; text-align: right;
+}
+
+/* Options row */
+.form-options {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+}
+.checkbox-wrap {
+  display: flex; align-items: center; gap: 8px;
+  font-size: .85rem; color: var(--text-muted); cursor: pointer;
+}
+.checkbox-wrap input[type="checkbox"] {
+  width: 16px; height: 16px; accent-color: var(--accent);
+  cursor: pointer;
+}
+.forgot-link {
+  font-size: .82rem; color: var(--accent);
+  text-decoration: none; transition: .2s;
+}
+.forgot-link:hover { text-decoration: underline; opacity: .85; }
+
+/* Submit button */
+.btn-submit {
+  width: 100%; padding: 13px 20px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  border: none; border-radius: var(--radius-sm);
+  font-size: 1rem; font-weight: 700; cursor: pointer;
+  color: #fff;
+  background: linear-gradient(135deg, #579DFF 0%, #3b7ce0 100%);
+  box-shadow: 0 4px 18px rgba(87,157,255,.3), inset 0 1px 0 rgba(255,255,255,.15);
+  transition: .25s; position: relative; overflow: hidden;
+}
+.btn-submit::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,.1) 50%, transparent 60%);
+  transform: translateX(-100%);
+  transition: transform .5s;
+}
+.btn-submit:hover::after { transform: translateX(100%); }
+.btn-submit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(87,157,255,.4);
+}
+.btn-submit:active { transform: translateY(0); }
+
+.btn-register {
+  background: linear-gradient(135deg, #61BD4F 0%, #3d9140 100%);
+  box-shadow: 0 4px 18px rgba(97,189,79,.3), inset 0 1px 0 rgba(255,255,255,.15);
+}
+.btn-register:hover {
+  box-shadow: 0 6px 24px rgba(97,189,79,.4);
+}
+
+/* Error message */
+.form-error {
+  margin-top: 12px; padding: 0;
+  font-size: .85rem; font-weight: 500;
+  color: var(--red); text-align: center;
+  min-height: 20px;
+  transition: .3s;
+}
+.form-error.show {
+  padding: 10px;
+  background: rgba(235,90,70,.08);
+  border: 1px solid rgba(235,90,70,.2);
+  border-radius: var(--radius-sm);
+}
+
+/* Success */
+.form-error.success {
+  color: var(--green);
+  background: rgba(97,189,79,.08);
+  border-color: rgba(97,189,79,.2);
+}
+
+/* === DIVIDER === */
+.divider {
+  display: flex; align-items: center; gap: 14px;
+  margin: 22px 0 18px;
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1; height: 1px;
+  background: var(--glass-border);
+}
+.divider span {
+  font-size: .8rem; color: var(--text-muted);
+  white-space: nowrap; text-transform: uppercase;
+  letter-spacing: .5px; font-weight: 600;
+}
+
+/* === SOCIAL BUTTONS === */
+.social-buttons {
+  display: flex; gap: 10px;
+}
+.btn-social {
+  flex: 1; padding: 11px 8px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  background: rgba(255,255,255,.04);
+  backdrop-filter: blur(8px);
+  color: var(--text); font-size: .82rem; font-weight: 600;
+  cursor: pointer; transition: .25s;
+}
+.btn-social:hover {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.15);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0,0,0,.2);
+}
+.btn-google:hover  { border-color: rgba(66,133,244,.4); box-shadow: 0 4px 14px rgba(66,133,244,.15); }
+.btn-microsoft:hover { border-color: rgba(0,164,239,.4); box-shadow: 0 4px 14px rgba(0,164,239,.15); }
+.btn-github:hover { border-color: rgba(255,255,255,.25); box-shadow: 0 4px 14px rgba(255,255,255,.08); }
+
+.btn-social svg { flex-shrink: 0; }
+
+/* === FOOTER === */
+.auth-footer {
+  margin-top: 24px;
+  font-size: .78rem; color: var(--text-muted);
+  text-align: center; opacity: .6;
+}
+
+/* === LOADING SPINNER === */
+.btn-submit.loading {
+  pointer-events: none; opacity: .75;
+}
+.btn-submit.loading svg { display: none; }
+.btn-submit.loading::before {
+  content: '';
+  width: 20px; height: 20px;
+  border: 2.5px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* === RESPONSIVE === */
+@media (max-width: 480px) {
+  .auth-container { padding: 16px; }
+  .auth-card { padding: 0 20px 20px; }
+  .social-buttons { flex-direction: column; }
+  .btn-social { justify-content: center; }
+}

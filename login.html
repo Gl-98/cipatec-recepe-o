@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CADASTRADO 027 — Entrar</title>
+  <link rel="icon" type="image/png" href="/img/Gemini_Generated_Image_rkordnrkordnrkor.png">
+  <link rel="stylesheet" href="login.css">
+</head>
+<body>
+
+  <!-- ANIMAÇÃO DE FUNDO -->
+  <div class="bg-animation">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="blob blob-4"></div>
+    <div class="blob blob-5"></div>
+  </div>
+
+  <!-- PARTÍCULAS FLUTUANTES -->
+  <div class="particles" id="particles"></div>
+
+  <div class="auth-container">
+    <!-- LOGO -->
+    <div class="auth-logo">
+      <img src="/img/Gemini_Generated_Image_rkordnrkordnrkor.png" alt="Cipatec - Medicina Ocupacional" class="logo-img">
+    </div>
+
+    <!-- CARD DE AUTH -->
+    <div class="auth-card">
+      <!-- ABAS -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Entrar</button>
+        <button class="auth-tab" data-tab="register">Criar conta</button>
+      </div>
+
+      <!-- FORMULÁRIO LOGIN -->
+      <form class="auth-form" id="formLogin" autocomplete="on">
+        <div class="form-group">
+          <label for="loginEmail">E-mail</label>
+          <div class="input-wrap">
+            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="3"/><polyline points="22,7 12,14 2,7"/></svg>
+            <input type="email" id="loginEmail" placeholder="seuemail@exemplo.com" required autocomplete="email">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="loginSenha">Senha</label>
+          <div class="input-wrap">
+            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input type="password" id="loginSenha" placeholder="••••••••" required autocomplete="current-password">
+            <button type="button" class="toggle-pass" data-target="loginSenha" title="Mostrar senha">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="form-options">
+          <label class="checkbox-wrap">
+            <input type="checkbox" id="lembrar"> <span class="checkmark"></span> Lembrar de mim
+          </label>
+          <a href="#" class="forgot-link">Esqueceu a senha?</a>
+        </div>
+        <button type="submit" class="btn-submit">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Entrar
+        </button>
+        <div class="form-error" id="loginError"></div>
+      </form>
+
+      <!-- FORMULÁRIO REGISTRO -->
+      <form class="auth-form hidden" id="formRegister" autocomplete="on">
+        <div class="form-group">
+          <label for="regNome">Nome completo</label>
+          <div class="input-wrap">
+            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+            <input type="text" id="regNome" placeholder="Seu nome" required autocomplete="name">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="regEmail">E-mail</label>
+          <div class="input-wrap">
+            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="3"/><polyline points="22,7 12,14 2,7"/></svg>
+            <input type="email" id="regEmail" placeholder="seuemail@exemplo.com" required autocomplete="email">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="regSenha">Senha</label>
+          <div class="input-wrap">
+            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input type="password" id="regSenha" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="new-password">
+            <button type="button" class="toggle-pass" data-target="regSenha" title="Mostrar senha">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="password-strength" id="passStrength">
+            <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+            <span class="strength-label" id="strengthLabel"></span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="regSenha2">Confirmar senha</label>
+          <div class="input-wrap">
+            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <input type="password" id="regSenha2" placeholder="Repita a senha" required minlength="6" autocomplete="new-password">
+          </div>
+        </div>
+        <button type="submit" class="btn-submit btn-register">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          Criar conta
+        </button>
+        <div class="form-error" id="registerError"></div>
+      </form>
+
+      <!-- DIVISOR -->
+      <div class="divider">
+        <span>ou continue com</span>
+      </div>
+
+      <!-- SOCIAL LOGIN -->
+      <div class="social-buttons">
+        <button type="button" class="btn-social btn-google" id="btnGoogle">
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+          </svg>
+          Google
+        </button>
+        <button type="button" class="btn-social btn-microsoft" id="btnMicrosoft">
+          <svg width="20" height="20" viewBox="0 0 24 24">
+            <rect x="1" y="1" width="10" height="10" fill="#F25022"/>
+            <rect x="13" y="1" width="10" height="10" fill="#7FBA00"/>
+            <rect x="1" y="13" width="10" height="10" fill="#00A4EF"/>
+            <rect x="13" y="13" width="10" height="10" fill="#FFB900"/>
+          </svg>
+          Microsoft
+        </button>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <p class="auth-footer">
+      &copy; 2026 CADASTRADO 027 &bull; Cipatec Recepção
+    </p>
+  </div>
+
+  <script src="login.js"></script>
+</body>
+</html>
