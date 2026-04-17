@@ -154,11 +154,17 @@ app.use(express.json());
 
 // Sessão
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+const isProduction = !!process.env.BASE_URL;
 app.use(session({
   secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
-  cookie: { httpOnly: true, sameSite: 'lax', maxAge: 24 * 60 * 60 * 1000 }
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: isProduction,
+    maxAge: 24 * 60 * 60 * 1000
+  }
 }));
 
 // Passport
@@ -358,10 +364,12 @@ app.get('/api/auth/google',
 app.get('/api/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/login.html?error=google' }),
   (req, res) => {
-    // Após login pelo Google, salva na sessão
+    if (!req.user) return res.redirect('/login.html?error=google');
     req.session.userId = req.user.id;
     req.session.userName = req.user.name;
-    res.redirect('/index.html');
+    req.session.save(function() {
+      res.redirect('/index.html');
+    });
   }
 );
 
@@ -372,9 +380,12 @@ app.get('/api/auth/microsoft',
 app.get('/api/auth/microsoft/callback',
   passport.authenticate('microsoft', { failureRedirect: '/login.html?error=microsoft' }),
   (req, res) => {
+    if (!req.user) return res.redirect('/login.html?error=microsoft');
     req.session.userId = req.user.id;
     req.session.userName = req.user.name;
-    res.redirect('/index.html');
+    req.session.save(function() {
+      res.redirect('/index.html');
+    });
   }
 );
 app.get('/api/auth/github', (req, res) => {
