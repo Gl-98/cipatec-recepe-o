@@ -663,9 +663,8 @@
     Object.keys(grouped).forEach(function (key) {
       var g = grouped[key];
       var item = document.createElement('div');
-      item.className = 'sh-person expanded';
+      item.className = 'sh-person';
 
-      // Header com avatar, nome, contagem e botão apagar
       var header = document.createElement('div');
       header.className = 'sh-person-header';
       header.innerHTML =
@@ -678,10 +677,11 @@
         '</button>';
       item.appendChild(header);
 
-      // Toggle expand/collapse no header (exceto no botão apagar)
+      // Clique no header (exceto no botão apagar) abre modal de relatório
       header.addEventListener('click', function (e) {
         if (e.target.closest('.sh-delete-btn')) return;
-        item.classList.toggle('expanded');
+        searchHistoryDropdown.classList.remove('active');
+        openPersonReport(g);
       });
 
       // Botão apagar todos os registros desta pessoa
@@ -715,66 +715,107 @@
         }
       });
 
-      // Lista de visitas — detalhada
-      var visitsList = document.createElement('div');
-      visitsList.className = 'sh-visits';
-
-      g.visits.forEach(function (v, idx) {
-        var colName = '';
-        COLUMNS.forEach(function (col) { if (col.id === v.col) colName = col.title; });
-
-        var statusLabel = v.done ? 'Finalizado' : colName;
-        var statusClass = v.done ? 'done' : '';
-
-        var row = document.createElement('div');
-        row.className = 'sh-visit-row';
-
-        // Monta header da visita
-        var visitHeaderHtml =
-          '<div class="sh-visit-top">' +
-            '<span class="sh-visit-num">' + (idx + 1) + 'ª visita</span>' +
-            '<span class="sh-visit-date">' + (v.date || '—') + '</span>' +
-            (v.senha ? '<span class="sh-visit-senha">' + escapeHtml(v.senha) + '</span>' : '') +
-            '<span class="sh-visit-col ' + statusClass + '">' + escapeHtml(statusLabel) + '</span>' +
-          '</div>';
-
-        // Monta detalhes — sempre visíveis
-        var detailParts = [];
-        if (v.tipo_exame) detailParts.push('<div class="sh-detail-item"><span class="sh-detail-label">Exame</span><span class="sh-detail-value">' + escapeHtml(v.tipo_exame) + '</span></div>');
-        if (v.empresa) detailParts.push('<div class="sh-detail-item"><span class="sh-detail-label">Empresa</span><span class="sh-detail-value">' + escapeHtml(v.empresa) + '</span></div>');
-        if (v.funcao) detailParts.push('<div class="sh-detail-item"><span class="sh-detail-label">Função</span><span class="sh-detail-value">' + escapeHtml(v.funcao) + '</span></div>');
-        if (v.telefone) detailParts.push('<div class="sh-detail-item"><span class="sh-detail-label">Telefone</span><span class="sh-detail-value">' + escapeHtml(v.telefone) + '</span></div>');
-        if (v.hora_chegada) detailParts.push('<div class="sh-detail-item"><span class="sh-detail-label">Hora entrada</span><span class="sh-detail-value">' + escapeHtml(v.hora_chegada) + '</span></div>');
-        if (v.hora_saida) detailParts.push('<div class="sh-detail-item"><span class="sh-detail-label">Hora saída</span><span class="sh-detail-value">' + escapeHtml(v.hora_saida) + '</span></div>');
-        if (v.done_at) {
-          var doneDate = v.done_at.substring(0, 10).split('-').reverse().join('/');
-          var doneTime = v.done_at.substring(11, 16);
-          detailParts.push('<div class="sh-detail-item"><span class="sh-detail-label">Finalizado em</span><span class="sh-detail-value">' + doneDate + ' às ' + doneTime + '</span></div>');
-        }
-
-        var detailsHtml = detailParts.length > 0
-          ? '<div class="sh-visit-details-grid">' + detailParts.join('') + '</div>'
-          : '<div class="sh-visit-empty">Sem detalhes adicionais</div>';
-
-        row.innerHTML = visitHeaderHtml + detailsHtml;
-
-        row.addEventListener('click', function (e) {
-          e.stopPropagation();
-          searchHistoryDropdown.classList.remove('active');
-          searchInput.value = '';
-          applyFilters();
-          openCardDetail(v.id, v.col);
-        });
-
-        visitsList.appendChild(row);
-      });
-
-      item.appendChild(visitsList);
       searchHistoryDropdown.appendChild(item);
     });
 
     searchHistoryDropdown.classList.add('active');
   }
+
+  /* ===== MODAL RELATÓRIO DA PESSOA ===== */
+  var personReportOverlay = document.getElementById('personReportOverlay');
+  var prBody = document.getElementById('prBody');
+  var prName = document.getElementById('prName');
+  var prSubtitle = document.getElementById('prSubtitle');
+  var prAvatar = document.getElementById('prAvatar');
+  var prClose = document.getElementById('prClose');
+
+  function openPersonReport(group) {
+    prName.textContent = group.name;
+    prSubtitle.textContent = group.visits.length + ' visita' + (group.visits.length > 1 ? 's' : '') + ' registrada' + (group.visits.length > 1 ? 's' : '');
+    prAvatar.textContent = group.avatar || '??';
+    prAvatar.style.background = group.avatar_color || '#579DFF';
+
+    prBody.innerHTML = '';
+
+    if (group.visits.length === 0) {
+      prBody.innerHTML = '<div class="pr-no-visits">Nenhuma visita registrada.</div>';
+      personReportOverlay.classList.add('active');
+      return;
+    }
+
+    group.visits.forEach(function (v, idx) {
+      var colName = '';
+      COLUMNS.forEach(function (col) { if (col.id === v.col) colName = col.title; });
+
+      var isDone = v.done;
+      var statusLabel = isDone ? 'Finalizado' : colName;
+      var statusClass = isDone ? 'done' : 'active';
+
+      var card = document.createElement('div');
+      card.className = 'pr-visit-card';
+
+      // Header
+      var headerHtml =
+        '<div class="pr-visit-header">' +
+          '<span class="pr-visit-num">' + (idx + 1) + 'ª visita</span>' +
+          '<span class="pr-visit-date">' + escapeHtml(v.date || '—') + '</span>' +
+          (v.senha ? '<span class="pr-visit-senha">' + escapeHtml(v.senha) + '</span>' : '') +
+          '<span class="pr-visit-status ' + statusClass + '">' + escapeHtml(statusLabel) + '</span>' +
+        '</div>';
+
+      // Detalhes em grid
+      var details = [];
+      if (v.tipo_exame) details.push({ label: 'Exame', value: v.tipo_exame });
+      if (v.empresa) details.push({ label: 'Empresa', value: v.empresa });
+      if (v.funcao) details.push({ label: 'Função', value: v.funcao });
+      if (v.telefone) details.push({ label: 'Telefone', value: v.telefone });
+      if (v.hora_chegada) details.push({ label: 'Hora entrada', value: v.hora_chegada });
+      if (v.hora_saida) details.push({ label: 'Hora saída', value: v.hora_saida });
+      if (v.done_at) {
+        var doneDate = v.done_at.substring(0, 10).split('-').reverse().join('/');
+        var doneTime = v.done_at.substring(11, 16);
+        details.push({ label: 'Finalizado em', value: doneDate + ' às ' + doneTime });
+      }
+
+      var gridHtml = '';
+      if (details.length > 0) {
+        gridHtml = '<div class="pr-visit-grid">';
+        details.forEach(function (d) {
+          gridHtml +=
+            '<div class="pr-detail-item">' +
+              '<span class="pr-detail-label">' + escapeHtml(d.label) + '</span>' +
+              '<span class="pr-detail-value">' + escapeHtml(d.value) + '</span>' +
+            '</div>';
+        });
+        gridHtml += '</div>';
+      } else {
+        gridHtml = '<div class="pr-visit-empty">Sem detalhes adicionais</div>';
+      }
+
+      card.innerHTML = headerHtml + gridHtml;
+
+      // Clicar no card abre o detalhe completo
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', function () {
+        personReportOverlay.classList.remove('active');
+        openCardDetail(v.id, v.col);
+      });
+
+      prBody.appendChild(card);
+    });
+
+    personReportOverlay.classList.add('active');
+  }
+
+  prClose.addEventListener('click', function () {
+    personReportOverlay.classList.remove('active');
+  });
+
+  personReportOverlay.addEventListener('click', function (e) {
+    if (e.target === personReportOverlay) {
+      personReportOverlay.classList.remove('active');
+    }
+  });
 
   /* ===== PAINEL DE FILTRO ===== */
   var filterPanel = document.getElementById('filterPanel');
