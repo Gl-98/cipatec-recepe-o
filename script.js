@@ -104,6 +104,9 @@
     boardEl.innerHTML = '';
 
     COLUMNS.forEach(function (col) {
+      // Não renderiza a coluna "finalizado" no board — só aparece na busca
+      if (col.id === 'finalizado') return;
+
       var colEl = document.createElement('div');
       colEl.className = 'column';
       colEl.dataset.col = col.id;
@@ -264,7 +267,7 @@
     if (showRight) {
       footerHtml += '<button class="btn-right" title="Mover para próxima coluna"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></button>';
     }
-    footerHtml += '<button class="btn-remove" title="Remover/Arquivar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
+    footerHtml += '<button class="btn-remove" title="Finalizar"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></button>';
     footerHtml += '</div>';
 
     el.innerHTML =
@@ -550,7 +553,7 @@
 
   document.getElementById('confirmYes').addEventListener('click', function () {
     if (pendingRemoveId) {
-      api('DELETE', '/api/cards/' + encodeURIComponent(pendingRemoveId)).then(function () {
+      api('PATCH', '/api/cards/' + encodeURIComponent(pendingRemoveId) + '/finalize').then(function () {
         loadFromServer();
       });
     }
@@ -660,44 +663,100 @@
     Object.keys(grouped).forEach(function (key) {
       var g = grouped[key];
       var item = document.createElement('div');
-      item.className = 'sh-person';
+      item.className = 'sh-person expanded';
 
+      // Header com avatar, nome, contagem e botão apagar
       var header = document.createElement('div');
       header.className = 'sh-person-header';
       header.innerHTML =
         '<span class="sh-avatar" style="background:' + (g.avatar_color || '#579DFF') + '">' + (g.avatar || '??') + '</span>' +
         '<span class="sh-name">' + escapeHtml(g.name) + '</span>' +
-        '<span class="sh-count">' + g.visits.length + ' visita' + (g.visits.length > 1 ? 's' : '') + '</span>';
+        '<span class="sh-count">' + g.visits.length + ' visita' + (g.visits.length > 1 ? 's' : '') + '</span>' +
+        '<button class="sh-delete-btn" title="Apagar todos os registros desta pessoa">' +
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>' +
+          ' Apagar' +
+        '</button>';
       item.appendChild(header);
 
-      header.addEventListener('click', function () {
+      // Toggle expand/collapse no header (exceto no botão apagar)
+      header.addEventListener('click', function (e) {
+        if (e.target.closest('.sh-delete-btn')) return;
         item.classList.toggle('expanded');
       });
 
+      // Botão apagar todos os registros desta pessoa
+      header.querySelector('.sh-delete-btn').addEventListener('click', function (e) {
+        e.stopPropagation();
+        var btn = this;
+        if (btn.dataset.confirm) {
+          api('DELETE', '/api/cards/by-name/' + encodeURIComponent(g.name)).then(function (resp) {
+            if (resp.ok) {
+              item.style.transition = 'opacity .3s, transform .3s';
+              item.style.opacity = '0';
+              item.style.transform = 'translateX(20px)';
+              setTimeout(function () {
+                item.remove();
+                loadFromServer();
+                if (searchHistoryDropdown.children.length === 0) {
+                  searchHistoryDropdown.classList.remove('active');
+                }
+              }, 300);
+            }
+          });
+        } else {
+          btn.dataset.confirm = '1';
+          btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4m0 4h.01M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/></svg> Tem certeza?';
+          btn.classList.add('confirming');
+          setTimeout(function () {
+            btn.removeAttribute('data-confirm');
+            btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Apagar';
+            btn.classList.remove('confirming');
+          }, 3000);
+        }
+      });
+
+      // Lista de visitas — detalhada
       var visitsList = document.createElement('div');
       visitsList.className = 'sh-visits';
 
-      g.visits.forEach(function (v) {
+      g.visits.forEach(function (v, idx) {
         var colName = '';
         COLUMNS.forEach(function (col) { if (col.id === v.col) colName = col.title; });
 
+        var statusLabel = v.done ? 'Finalizado' : colName;
+        var statusClass = v.done ? 'done' : '';
+
         var row = document.createElement('div');
         row.className = 'sh-visit-row';
-        row.innerHTML =
+
+        // Monta header da visita
+        var visitHeaderHtml =
           '<div class="sh-visit-top">' +
+            '<span class="sh-visit-num">' + (idx + 1) + 'ª visita</span>' +
             '<span class="sh-visit-date">' + (v.date || '—') + '</span>' +
             (v.senha ? '<span class="sh-visit-senha">' + escapeHtml(v.senha) + '</span>' : '') +
-            '<span class="sh-visit-col ' + (v.done ? 'done' : '') + '">' + escapeHtml(colName) + '</span>' +
-          '</div>' +
-          '<div class="sh-visit-details">' +
-            (v.tipo_exame ? '<span><b>Exame:</b> ' + escapeHtml(v.tipo_exame) + '</span>' : '') +
-            (v.empresa ? '<span><b>Empresa:</b> ' + escapeHtml(v.empresa) + '</span>' : '') +
-            (v.funcao ? '<span><b>Função:</b> ' + escapeHtml(v.funcao) + '</span>' : '') +
-            (v.telefone ? '<span><b>Tel:</b> ' + escapeHtml(v.telefone) + '</span>' : '') +
-            (v.hora_chegada ? '<span><b>Chegada:</b> ' + v.hora_chegada + '</span>' : '') +
-            (v.hora_saida ? '<span><b>Saída:</b> ' + v.hora_saida + '</span>' : '') +
-            (v.done_at ? '<span><b>Finalizado:</b> ' + v.done_at + '</span>' : '') +
+            '<span class="sh-visit-col ' + statusClass + '">' + escapeHtml(statusLabel) + '</span>' +
           '</div>';
+
+        // Monta detalhes — sempre visíveis
+        var detailParts = [];
+        if (v.tipo_exame) detailParts.push('<div class="sh-detail-item"><span class="sh-detail-label">Exame</span><span class="sh-detail-value">' + escapeHtml(v.tipo_exame) + '</span></div>');
+        if (v.empresa) detailParts.push('<div class="sh-detail-item"><span class="sh-detail-label">Empresa</span><span class="sh-detail-value">' + escapeHtml(v.empresa) + '</span></div>');
+        if (v.funcao) detailParts.push('<div class="sh-detail-item"><span class="sh-detail-label">Função</span><span class="sh-detail-value">' + escapeHtml(v.funcao) + '</span></div>');
+        if (v.telefone) detailParts.push('<div class="sh-detail-item"><span class="sh-detail-label">Telefone</span><span class="sh-detail-value">' + escapeHtml(v.telefone) + '</span></div>');
+        if (v.hora_chegada) detailParts.push('<div class="sh-detail-item"><span class="sh-detail-label">Hora entrada</span><span class="sh-detail-value">' + escapeHtml(v.hora_chegada) + '</span></div>');
+        if (v.hora_saida) detailParts.push('<div class="sh-detail-item"><span class="sh-detail-label">Hora saída</span><span class="sh-detail-value">' + escapeHtml(v.hora_saida) + '</span></div>');
+        if (v.done_at) {
+          var doneDate = v.done_at.substring(0, 10).split('-').reverse().join('/');
+          var doneTime = v.done_at.substring(11, 16);
+          detailParts.push('<div class="sh-detail-item"><span class="sh-detail-label">Finalizado em</span><span class="sh-detail-value">' + doneDate + ' às ' + doneTime + '</span></div>');
+        }
+
+        var detailsHtml = detailParts.length > 0
+          ? '<div class="sh-visit-details-grid">' + detailParts.join('') + '</div>'
+          : '<div class="sh-visit-empty">Sem detalhes adicionais</div>';
+
+        row.innerHTML = visitHeaderHtml + detailsHtml;
 
         row.addEventListener('click', function (e) {
           e.stopPropagation();
@@ -1289,6 +1348,35 @@
     loadConversations();
   });
 
+  // === CHAT: APAGAR CONVERSA ===
+  var chatDeleteBtn = document.getElementById('chatDeleteConvo');
+
+  chatDeleteBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (!currentChatUserId) return;
+
+    if (chatDeleteBtn.dataset.confirm) {
+      api('DELETE', '/api/messages/conversation/' + encodeURIComponent(currentChatUserId)).then(function (resp) {
+        if (resp.ok) {
+          showChatConvos();
+          loadConversations();
+        }
+      });
+      chatDeleteBtn.removeAttribute('data-confirm');
+      chatDeleteBtn.querySelector('span').textContent = 'Apagar';
+      chatDeleteBtn.classList.remove('confirming');
+    } else {
+      chatDeleteBtn.dataset.confirm = '1';
+      chatDeleteBtn.querySelector('span').textContent = 'Confirmar?';
+      chatDeleteBtn.classList.add('confirming');
+      setTimeout(function () {
+        chatDeleteBtn.removeAttribute('data-confirm');
+        chatDeleteBtn.querySelector('span').textContent = 'Apagar';
+        chatDeleteBtn.classList.remove('confirming');
+      }, 3000);
+    }
+  });
+
   // === CHAT: LISTA DE CONVERSAS ===
   function loadConversations() {
     api('GET', '/api/messages/conversations').then(function (data) {
@@ -1506,7 +1594,32 @@
         '<div class="member-row-info">' +
           '<span class="member-row-name">' + escapeHtml(m.name) + '</span>' +
           '<span class="member-row-email">' + escapeHtml(m.email) + '</span>' +
-        '</div>';
+        '</div>' +
+        '<button class="member-remove-btn" data-user-id="' + m.id + '" title="Remover membro">Remover</button>';
+
+      // Evento de remover membro
+      row.querySelector('.member-remove-btn').addEventListener('click', function (e) {
+        e.stopPropagation();
+        var btn = this;
+        if (btn.dataset.confirm) {
+          api('DELETE', '/api/users/' + encodeURIComponent(m.id)).then(function (resp) {
+            if (resp.ok) {
+              loadMembers();
+            } else {
+              alert(resp.error || 'Erro ao remover');
+            }
+          });
+        } else {
+          btn.dataset.confirm = '1';
+          btn.textContent = 'Confirmar';
+          btn.classList.add('confirm');
+          setTimeout(function () {
+            btn.removeAttribute('data-confirm');
+            btn.textContent = 'Remover';
+            btn.classList.remove('confirm');
+          }, 3000);
+        }
+      });
 
       // Tenta carregar Gravatar no dropdown também
       var avatarEl = row.querySelector('.member-row-avatar');

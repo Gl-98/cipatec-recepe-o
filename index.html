@@ -378,13 +378,13 @@
   <div class="confirm-overlay" id="confirmOverlay">
     <div class="confirm-box">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="1.5" stroke-linecap="round" style="margin-bottom:12px">
-        <circle cx="12" cy="12" r="10" fill="rgba(235,90,70,.1)"/>
-        <line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+        <circle cx="12" cy="12" r="10" fill="rgba(97,189,79,.1)"/>
+        <polyline points="20 6 9 17 4 12"/>
       </svg>
-      <p>Deseja remover/arquivar este cartão?</p>
+      <p>Deseja finalizar este cartão?</p>
       <div class="confirm-actions">
         <button class="btn-cancel-modal" id="confirmNo">Cancelar</button>
-        <button class="btn-danger" id="confirmYes">Remover</button>
+        <button class="btn-danger" id="confirmYes">Finalizar</button>
       </div>
     </div>
   </div>
@@ -519,6 +519,12 @@
             <button class="chat-back-btn" id="chatViewBack">&larr;</button>
             <div class="chat-view-avatar" id="chatViewAvatar"></div>
             <span class="chat-view-name" id="chatViewName"></span>
+            <div class="chat-header-actions">
+              <button class="chat-action-btn chat-delete-btn" id="chatDeleteConvo" title="Apagar conversa">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <span>Apagar</span>
+              </button>
+            </div>
           </div>
           <div class="chat-messages" id="chatMessages"></div>
           <div class="chat-input-area">

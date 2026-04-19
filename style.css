@@ -178,6 +178,27 @@ body {
 .sh-name { flex: 1; font-weight: 600; font-size: .92rem; color: var(--text); }
 .sh-count { font-size: .78rem; color: var(--text-muted); white-space: nowrap; }
 
+.sh-delete-btn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 4px;
+  font-size: .7rem; font-weight: 600;
+  cursor: pointer; transition: .15s;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.06);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.sh-delete-btn:hover {
+  background: rgba(235,90,70,.15);
+  color: #eb5a46;
+  border-color: rgba(235,90,70,.3);
+}
+.sh-delete-btn.confirming {
+  background: #eb5a46;
+  color: #fff;
+  border-color: #eb5a46;
+}
+
 .sh-visits {
   display: none;
   padding: 0 8px 8px 54px;
@@ -185,19 +206,24 @@ body {
 .sh-person.expanded .sh-visits { display: block; }
 
 .sh-visit-row {
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background .15s;
   border-left: 3px solid var(--accent);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   background: rgba(255,255,255,.03);
 }
 .sh-visit-row:hover { background: rgba(87,157,255,.1); }
 
 .sh-visit-top {
   display: flex; align-items: center; gap: 8px;
-  font-size: .85rem; margin-bottom: 4px;
+  font-size: .85rem; margin-bottom: 6px;
+}
+.sh-visit-num {
+  font-size: .72rem; font-weight: 700; color: var(--accent);
+  background: rgba(87,157,255,.12); padding: 1px 8px;
+  border-radius: 10px;
 }
 .sh-visit-date { font-weight: 600; color: var(--text); }
 .sh-visit-senha {
@@ -211,11 +237,24 @@ body {
 }
 .sh-visit-col.done { color: #4ade80; }
 
-.sh-visit-details {
-  display: flex; flex-wrap: wrap; gap: 6px 14px;
-  font-size: .8rem; color: var(--text-muted);
+.sh-visit-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
 }
-.sh-visit-details b { color: var(--text); font-weight: 600; }
+.sh-detail-item {
+  display: flex; flex-direction: column; gap: 1px;
+}
+.sh-detail-label {
+  font-size: .68rem; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .3px;
+}
+.sh-detail-value {
+  font-size: .82rem; color: var(--text); font-weight: 500;
+}
+.sh-visit-empty {
+  font-size: .78rem; color: var(--text-muted); font-style: italic;
+}
 
 .btn-criar {
   display: flex; align-items: center; gap: 6px;
@@ -446,6 +485,29 @@ body {
 .member-row-email {
   font-size: .78rem; color: var(--text-muted);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.member-remove-btn {
+  margin-left: auto;
+  padding: 3px 10px;
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: .15s;
+  flex-shrink: 0;
+}
+.member-remove-btn:hover {
+  background: rgba(235,90,70,.15);
+  color: #eb5a46;
+  border-color: rgba(235,90,70,.3);
+}
+.member-remove-btn.confirm {
+  background: #eb5a46;
+  color: #fff;
+  border-color: #eb5a46;
 }
 
 .header-user {
@@ -926,6 +988,32 @@ body {
   color: #fff; font-size: .72rem; font-weight: 700;
 }
 .chat-view-name { font-size: .92rem; font-weight: 600; color: var(--text); }
+.chat-header-actions {
+  margin-left: auto; display: flex; gap: 6px;
+}
+.chat-action-btn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 6px;
+  font-size: .7rem; font-weight: 600;
+  cursor: pointer; transition: .15s;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.06);
+  color: var(--text-muted);
+}
+.chat-action-btn:hover {
+  background: rgba(255,255,255,.1);
+  color: var(--text);
+}
+.chat-delete-btn:hover {
+  background: rgba(235,90,70,.15);
+  color: #eb5a46;
+  border-color: rgba(235,90,70,.3);
+}
+.chat-delete-btn.confirming {
+  background: #eb5a46;
+  color: #fff;
+  border-color: #eb5a46;
+}
 
 .chat-messages {
   flex: 1; overflow-y: auto; padding: 16px;

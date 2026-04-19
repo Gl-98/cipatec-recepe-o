@@ -360,6 +360,24 @@ app.get('/api/users', requireAuth, (req, res) => {
   res.json({ ok: true, members });
 });
 
+// DELETE /api/users/:id — remove conta de um membro
+app.delete('/api/users/:id', requireAuth, (req, res) => {
+  const targetId = parseInt(req.params.id, 10);
+  if (isNaN(targetId)) return res.status(400).json({ error: 'ID inválido' });
+
+  const target = db.prepare('SELECT id, name FROM users WHERE id = ?').get(targetId);
+  if (!target) return res.status(404).json({ error: 'Usuário não encontrado' });
+
+  // Remove o usuário
+  db.prepare('DELETE FROM users WHERE id = ?').run(targetId);
+
+  // Notificação
+  const actorName = req.session.userName || 'Alguém';
+  notify('member_removed', actorName + ' removeu o membro "' + target.name + '"', { actorName });
+
+  res.json({ ok: true });
+});
+
 // GET /api/auth/me — retorna dados do usuário logado
 app.get('/api/auth/me', (req, res) => {
   if (!req.session || !req.session.userId) {
@@ -511,13 +529,19 @@ app.patch('/api/cards/:id/move', requireAuth, (req, res) => {
   const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(cardId);
   if (!card) return res.status(404).json({ error: 'Cartão não encontrado' });
 
-  // Sempre calcula posição correta baseada no número (senha) para manter a ordem
-  const cardsInDestCol = db.prepare('SELECT id, num, sort_order FROM cards WHERE col = ? AND id != ? ORDER BY sort_order ASC').all(col, cardId);
-  let order = cardsInDestCol.length; // por padrão, vai no final
-  for (let i = 0; i < cardsInDestCol.length; i++) {
-    if (card.num < cardsInDestCol[i].num) {
-      order = i;
-      break;
+  let order;
+  if (sortOrder != null) {
+    order = sortOrder;
+  } else {
+    // Calcula posição correta baseada no número da senha (num)
+    // Encontra a posição onde este cartão deveria ficar para manter a ordem numérica
+    const cardsInDestCol = db.prepare('SELECT id, num, sort_order FROM cards WHERE col = ? ORDER BY sort_order ASC').all(col);
+    order = cardsInDestCol.length; // por padrão, vai no final
+    for (let i = 0; i < cardsInDestCol.length; i++) {
+      if (card.num < cardsInDestCol[i].num) {
+        order = i;
+        break;
+      }
     }
   }
 
@@ -531,13 +555,6 @@ app.patch('/api/cards/:id/move', requireAuth, (req, res) => {
     reordered.forEach((c, idx) => {
       db.prepare('UPDATE cards SET sort_order = ? WHERE id = ?').run(idx, c.id);
     });
-    // Recompacta coluna de origem também
-    if (card.col !== col) {
-      const srcReordered = db.prepare('SELECT id FROM cards WHERE col = ? ORDER BY sort_order ASC').all(card.col);
-      srcReordered.forEach((c, idx) => {
-        db.prepare('UPDATE cards SET sort_order = ? WHERE id = ?').run(idx, c.id);
-      });
-    }
   });
   moveTransaction();
 
@@ -578,11 +595,63 @@ app.delete('/api/cards/:id', requireAuth, (req, res) => {
   if (!card) return res.status(404).json({ error: 'Cartão não encontrado' });
   if (card.id === 'modelo-fixo') return res.status(403).json({ error: 'O cartão modelo não pode ser removido' });
 
+  // Remove comentários e atividades relacionados
+  db.prepare('DELETE FROM card_comments WHERE card_id = ?').run(req.params.id);
+  db.prepare('DELETE FROM card_activity WHERE card_id = ?').run(req.params.id);
   db.prepare('DELETE FROM cards WHERE id = ?').run(req.params.id);
 
   // Notificação
   const actorDel = req.session.userName || 'Alguém';
   notify('card_deleted', actorDel + ' removeu o cartão "' + card.name + '"', { cardName: card.name, actorName: actorDel });
+
+  res.json({ ok: true });
+});
+
+// DELETE /api/cards/by-name/:name — remove TODOS os cartões de uma pessoa pelo nome
+app.delete('/api/cards/by-name/:name', requireAuth, (req, res) => {
+  const name = decodeURIComponent(req.params.name).toUpperCase().trim();
+  if (!name) return res.status(400).json({ error: 'Nome obrigatório' });
+
+  const cards = db.prepare("SELECT id FROM cards WHERE UPPER(name) = ? AND fixed = 0").all(name);
+  if (cards.length === 0) return res.status(404).json({ error: 'Nenhum cartão encontrado' });
+
+  const deleteAll = db.transaction(() => {
+    cards.forEach(c => {
+      db.prepare('DELETE FROM card_comments WHERE card_id = ?').run(c.id);
+      db.prepare('DELETE FROM card_activity WHERE card_id = ?').run(c.id);
+      db.prepare('DELETE FROM cards WHERE id = ?').run(c.id);
+    });
+  });
+  deleteAll();
+
+  const actorDel = req.session.userName || 'Alguém';
+  notify('card_deleted', actorDel + ' apagou todos os registros de "' + name + '" (' + cards.length + ')', { cardName: name, actorName: actorDel });
+
+  res.json({ ok: true, deleted: cards.length });
+});
+
+// PATCH /api/cards/:id/finalize — finaliza cartão (move para coluna finalizado e marca concluído)
+app.patch('/api/cards/:id/finalize', requireAuth, (req, res) => {
+  const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(req.params.id);
+  if (!card) return res.status(404).json({ error: 'Cartão não encontrado' });
+  if (card.id === 'modelo-fixo') return res.status(403).json({ error: 'O cartão modelo não pode ser finalizado' });
+
+  const now = new Date();
+  const doneAt = now.toISOString();
+  const horaSaida = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+
+  const maxOrder = db.prepare('SELECT COALESCE(MAX(sort_order), -1) as m FROM cards WHERE col = ?').get('finalizado').m;
+
+  db.prepare('UPDATE cards SET col = ?, done = 1, done_at = ?, hora_saida = ?, sort_order = ? WHERE id = ?')
+    .run('finalizado', doneAt, horaSaida, maxOrder + 1, req.params.id);
+
+  // Log de atividade
+  const actorName = req.session.userName || 'Alguém';
+  db.prepare('INSERT INTO card_activity (card_id, user_name, action) VALUES (?, ?, ?)').run(
+    req.params.id, actorName, 'finalizou o cartão'
+  );
+
+  notify('card_moved', actorName + ' finalizou "' + card.name + '"', { cardName: card.name, fromCol: card.col, toCol: 'finalizado', actorName });
 
   res.json({ ok: true });
 });
@@ -883,6 +952,19 @@ app.post('/api/messages', requireAuth, (req, res) => {
   res.json({ ok: true, id: result.lastInsertRowid });
 });
 
+// DELETE /api/messages/conversation/:userId — apaga toda a conversa com um usuário
+app.delete('/api/messages/conversation/:userId', requireAuth, (req, res) => {
+  const myId = req.session.userId;
+  const otherId = parseInt(req.params.userId);
+  if (!otherId) return res.status(400).json({ error: 'userId inválido' });
+
+  db.prepare(
+    'DELETE FROM messages WHERE (from_user_id = ? AND to_user_id = ?) OR (from_user_id = ? AND to_user_id = ?)'
+  ).run(myId, otherId, otherId, myId);
+
+  res.json({ ok: true });
+});
+
 /* ===== PLANEJADOR & CALENDÁRIOS ===== */
 
 // Helpers HTTP para OAuth e APIs externas
@@ -1096,6 +1178,45 @@ app.get('/api/calendar/events', requireAuth, async (req, res) => {
   }
   res.json({ ok: true, events: external });
 });
+
+/* ===== AUTO-FINALIZAÇÃO ÀS 19:00 ===== */
+let lastAutoFinalize = '';
+
+function autoFinalizeCards() {
+  const now = new Date();
+  const hhmm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+  const today = now.toISOString().substring(0, 10);
+
+  // Executa uma vez por dia quando chegar 19:00
+  if (hhmm === '19:00' && lastAutoFinalize !== today) {
+    lastAutoFinalize = today;
+    const doneAt = now.toISOString();
+    const horaSaida = '19:00';
+
+    const activeCards = db.prepare(
+      "SELECT id, name, col FROM cards WHERE col != 'finalizado' AND col != 'modelo' AND fixed = 0"
+    ).all();
+
+    if (activeCards.length > 0) {
+      const finalize = db.transaction(() => {
+        activeCards.forEach(card => {
+          const maxOrder = db.prepare('SELECT COALESCE(MAX(sort_order), -1) as m FROM cards WHERE col = ?').get('finalizado').m;
+          db.prepare('UPDATE cards SET col = ?, done = 1, done_at = ?, hora_saida = ?, sort_order = ? WHERE id = ?')
+            .run('finalizado', doneAt, horaSaida, maxOrder + 1, card.id);
+          db.prepare('INSERT INTO card_activity (card_id, user_name, action) VALUES (?, ?, ?)').run(
+            card.id, 'Sistema', 'finalizado automaticamente às 19:00'
+          );
+        });
+      });
+      finalize();
+      console.log('[Auto-Finalização] ' + activeCards.length + ' cartão(ões) finalizado(s) às 19:00');
+      notify('auto_finalize', 'Sistema finalizou automaticamente ' + activeCards.length + ' cartão(ões) às 19:00', { actorName: 'Sistema' });
+    }
+  }
+}
+
+// Verifica a cada 30 segundos
+setInterval(autoFinalizeCards, 30 * 1000);
 
 /* ===== INICIAR SERVIDOR ===== */
 app.listen(PORT, () => {
