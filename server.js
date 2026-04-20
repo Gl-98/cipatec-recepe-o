@@ -1218,6 +1218,63 @@ function autoFinalizeCards() {
 // Verifica a cada 30 segundos
 setInterval(autoFinalizeCards, 30 * 1000);
 
+/* ===== BOARD INFO (métricas reais) ===== */
+app.get('/api/stats/board-info', requireAuth, (req, res) => {
+  try {
+    const fs = require('fs');
+
+    // Tamanho real do banco SQLite
+    let dbSizeBytes = 0;
+    try {
+      const stat = fs.statSync(DB_PATH);
+      dbSizeBytes = stat.size;
+      // Incluir WAL e SHM se existirem
+      try { dbSizeBytes += fs.statSync(DB_PATH + '-wal').size; } catch(e) {}
+      try { dbSizeBytes += fs.statSync(DB_PATH + '-shm').size; } catch(e) {}
+    } catch(e) {}
+
+    // Memória RAM do processo
+    const memUsage = process.memoryUsage();
+    const ramUsedBytes = memUsage.rss; // Resident Set Size
+
+    // Contagens reais
+    const totalCards = db.prepare("SELECT COUNT(*) as c FROM cards WHERE fixed = 0").get().c;
+    const doneCards = db.prepare("SELECT COUNT(*) as c FROM cards WHERE fixed = 0 AND done = 1").get().c;
+    const activeCards = totalCards - doneCards;
+    const totalComments = db.prepare("SELECT COUNT(*) as c FROM card_comments").get().c;
+    const totalActivities = db.prepare("SELECT COUNT(*) as c FROM card_activity").get().c;
+
+    // Colunas: padrão + customizadas
+    const customCols = db.prepare("SELECT COUNT(*) as c FROM custom_columns").get().c;
+    const totalCols = 6 + customCols; // 6 padrão
+
+    // Limites Render Free Tier
+    const RENDER_RAM_MB = 512;
+    const RENDER_DISK_MB = 1024; // ~1 GB disco efêmero
+
+    res.json({
+      ok: true,
+      ram: {
+        usedBytes: ramUsedBytes,
+        limitBytes: RENDER_RAM_MB * 1024 * 1024,
+        usedMB: +(ramUsedBytes / (1024 * 1024)).toFixed(1),
+        limitMB: RENDER_RAM_MB
+      },
+      disk: {
+        usedBytes: dbSizeBytes,
+        limitBytes: RENDER_DISK_MB * 1024 * 1024,
+        usedMB: +(dbSizeBytes / (1024 * 1024)).toFixed(2),
+        limitMB: RENDER_DISK_MB
+      },
+      cards: { total: totalCards, active: activeCards, done: doneCards },
+      columns: { total: totalCols, custom: customCols },
+      data: { comments: totalComments, activities: totalActivities }
+    });
+  } catch(err) {
+    res.json({ ok: false, error: err.message });
+  }
+});
+
 /* ===== INICIAR SERVIDOR ===== */
 app.listen(PORT, () => {
   console.log(`CADASTRADO 027 rodando em http://localhost:${PORT}`);

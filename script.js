@@ -2489,11 +2489,13 @@
   function renderKanban() {
     var map = getKanbanMap();
     var todoCards = [], doingCards = [], doneCards = [];
+    var hoje = todayDDMM(); // só cards de hoje
 
     Object.keys(state.cards).forEach(function (colId) {
       var cards = state.cards[colId] || [];
       cards.forEach(function (card) {
         if (card.fixed) return; // ignora modelos
+        if (card.date !== hoje) return; // só cards do dia
         var item = { card: card, colId: colId };
         if (map.done.indexOf(colId) !== -1 || card.done) {
           doneCards.push(item);
@@ -2597,127 +2599,98 @@
   var boardInfoClose = document.getElementById('boardInfoClose');
   var navBoardInfo = document.getElementById('navBoardInfo');
 
-  var BOARD_LIMITS = {
-    maxCards: 500,
-    maxCols: 20,
-    maxAttach: 1000,
-    maxMemoryKB: 102400 // 100MB in KB
-  };
-
-  function formatBytes(kb) {
-    if (kb >= 1024) return (kb / 1024).toFixed(1) + ' MB';
-    return Math.round(kb) + ' KB';
-  }
-
-  function calcBoardStats() {
-    var totalCards = 0;
-    var doneCards = 0;
-    Object.keys(state.cards).forEach(function (colId) {
-      var cards = state.cards[colId] || [];
-      cards.forEach(function (card) {
-        if (card.fixed) return;
-        totalCards++;
-        if (card.done) doneCards++;
-      });
-    });
-
-    var totalCols = COLUMNS.length;
-    // Estimativa de memória: ~0.5KB por card base + nome + dados
-    var estimatedKB = totalCards * 1.2 + totalCols * 0.5 + 8; // base overhead
-
-    return {
-      totalCards: totalCards,
-      doneCards: doneCards,
-      totalCols: totalCols,
-      estimatedKB: estimatedKB,
-      attachEstimate: Math.round(totalCards * 1.5) // estimativa comentários/anexos
-    };
+  function formatMB(mb) {
+    if (mb >= 1024) return (mb / 1024).toFixed(1) + ' GB';
+    if (mb >= 1) return mb.toFixed(1) + ' MB';
+    return (mb * 1024).toFixed(0) + ' KB';
   }
 
   function renderBoardInfo() {
-    var stats = calcBoardStats();
+    // Mostra loading
+    document.getElementById('memPct').textContent = '...';
 
-    // Memória circular
-    var memPct = Math.min((stats.estimatedKB / BOARD_LIMITS.maxMemoryKB) * 100, 100);
-    var circumference = 2 * Math.PI * 52; // ~326.73
-    var offset = circumference - (memPct / 100) * circumference;
+    api('GET', '/api/stats/board-info').then(function (data) {
+      if (!data.ok) return;
 
-    var memRing = document.getElementById('memRing');
-    var memPctEl = document.getElementById('memPct');
-    var memUsed = document.getElementById('memUsed');
-    var memFree = document.getElementById('memFree');
-    var memTotal = document.getElementById('memTotal');
+      // === RAM circular ===
+      var ramPct = Math.min((data.ram.usedMB / data.ram.limitMB) * 100, 100);
+      var circumference = 2 * Math.PI * 52;
+      var offset = circumference - (ramPct / 100) * circumference;
 
-    memRing.style.strokeDashoffset = offset;
-    memPctEl.textContent = Math.round(memPct) + '%';
-    memUsed.textContent = formatBytes(stats.estimatedKB);
-    memFree.textContent = formatBytes(BOARD_LIMITS.maxMemoryKB - stats.estimatedKB);
-    memTotal.textContent = formatBytes(BOARD_LIMITS.maxMemoryKB);
+      var memRing = document.getElementById('memRing');
+      memRing.style.strokeDashoffset = offset;
+      document.getElementById('memPct').textContent = Math.round(ramPct) + '%';
+      document.getElementById('memUsed').textContent = formatMB(data.ram.usedMB);
+      document.getElementById('memFree').textContent = formatMB(data.ram.limitMB - data.ram.usedMB);
+      document.getElementById('memTotal').textContent = formatMB(data.ram.limitMB);
 
-    // Cor do anel baseado no uso
-    if (memPct > 80) memRing.style.stroke = 'var(--red)';
-    else if (memPct > 60) memRing.style.stroke = 'var(--orange)';
-    else memRing.style.stroke = 'var(--accent)';
+      if (ramPct > 80) memRing.style.stroke = 'var(--red)';
+      else if (ramPct > 60) memRing.style.stroke = 'var(--orange)';
+      else memRing.style.stroke = 'var(--accent)';
 
-    // Cards bar
-    var cardsPct = Math.min((stats.totalCards / BOARD_LIMITS.maxCards) * 100, 100);
-    document.getElementById('cardsLabel').textContent = stats.totalCards + ' / ' + BOARD_LIMITS.maxCards;
-    var cardsFill = document.getElementById('cardsFill');
-    cardsFill.style.width = cardsPct + '%';
-    cardsFill.className = 'boardinfo-bar-fill' + (cardsPct > 80 ? ' bar-danger' : cardsPct > 60 ? ' bar-warning' : '');
+      // === Disco (banco SQLite) bar ===
+      var diskPct = Math.min((data.disk.usedMB / data.disk.limitMB) * 100, 100);
+      document.getElementById('cardsLabel').textContent = formatMB(data.disk.usedMB) + ' / ' + formatMB(data.disk.limitMB);
+      var cardsFill = document.getElementById('cardsFill');
+      cardsFill.style.width = Math.max(diskPct, 0.5) + '%';
+      cardsFill.className = 'boardinfo-bar-fill' + (diskPct > 80 ? ' bar-danger' : diskPct > 60 ? ' bar-warning' : '');
 
-    // Columns bar
-    var colsPct = Math.min((stats.totalCols / BOARD_LIMITS.maxCols) * 100, 100);
-    document.getElementById('colsLabel').textContent = stats.totalCols + ' / ' + BOARD_LIMITS.maxCols;
-    var colsFill = document.getElementById('colsFill');
-    colsFill.style.width = colsPct + '%';
-    colsFill.className = 'boardinfo-bar-fill boardinfo-bar-purple' + (colsPct > 80 ? ' bar-danger' : '');
+      // === Cards bar ===
+      var totalCards = data.cards.total;
+      document.getElementById('colsLabel').textContent = totalCards + ' cards (' + data.cards.active + ' ativos, ' + data.cards.done + ' concluídos)';
+      var colsFill = document.getElementById('colsFill');
+      var cardBarPct = Math.min(totalCards / 5, 100); // visual proporcional
+      colsFill.style.width = Math.max(cardBarPct, 0.5) + '%';
+      colsFill.className = 'boardinfo-bar-fill boardinfo-bar-purple';
 
-    // Attachments bar
-    var attachPct = Math.min((stats.attachEstimate / BOARD_LIMITS.maxAttach) * 100, 100);
-    document.getElementById('attachLabel').textContent = stats.attachEstimate + ' / ' + BOARD_LIMITS.maxAttach;
-    var attachFill = document.getElementById('attachFill');
-    attachFill.style.width = attachPct + '%';
-    attachFill.className = 'boardinfo-bar-fill boardinfo-bar-green' + (attachPct > 80 ? ' bar-danger' : '');
+      // === Dados (comentários + atividades) bar ===
+      var totalData = data.data.comments + data.data.activities;
+      document.getElementById('attachLabel').textContent = data.data.comments + ' comentários, ' + data.data.activities + ' atividades';
+      var attachFill = document.getElementById('attachFill');
+      var dataBarPct = Math.min(totalData / 10, 100);
+      attachFill.style.width = Math.max(dataBarPct, 0.5) + '%';
+      attachFill.className = 'boardinfo-bar-fill boardinfo-bar-green';
 
-    // Tips
-    var tipsList = document.getElementById('tipsList');
-    tipsList.innerHTML = '';
-    var tips = [];
+      // === Dicas ===
+      var tipsList = document.getElementById('tipsList');
+      tipsList.innerHTML = '';
+      var tips = [];
 
-    if (stats.totalCards === 0) {
-      tips.push({ icon: 'info', text: 'Nenhum cartão no quadro. Comece criando seu primeiro cartão!' });
-    }
-    if (cardsPct < 30) {
-      tips.push({ icon: 'ok', text: 'Uso de cards está saudável. Você tem bastante espaço disponível.' });
-    }
-    if (cardsPct >= 30 && cardsPct < 70) {
-      tips.push({ icon: 'info', text: 'Uso moderado. Considere finalizar cards antigos para liberar espaço.' });
-    }
-    if (cardsPct >= 70) {
-      tips.push({ icon: 'warn', text: 'Atenção! Próximo do limite de cards. Finalize ou arquive cartões concluídos.' });
-    }
-    if (stats.doneCards > 0) {
-      tips.push({ icon: 'ok', text: stats.doneCards + ' cartão(ões) concluído(s). Bom progresso!' });
-    }
-    if (stats.totalCols > 10) {
-      tips.push({ icon: 'warn', text: 'Muitas colunas ativas. Considere consolidar para melhor organização.' });
-    } else {
-      tips.push({ icon: 'ok', text: 'Quantidade de colunas adequada para boa visibilidade.' });
-    }
+      if (ramPct < 40) {
+        tips.push({ icon: 'ok', text: 'RAM saudável (' + formatMB(data.ram.usedMB) + ' de ' + formatMB(data.ram.limitMB) + '). Servidor estável.' });
+      } else if (ramPct < 70) {
+        tips.push({ icon: 'info', text: 'Uso de RAM moderado. Fique de olho no crescimento.' });
+      } else {
+        tips.push({ icon: 'warn', text: 'RAM alta! Considere reiniciar o serviço ou otimizar consultas.' });
+      }
 
-    tips.forEach(function (tip) {
-      var iconClass = 'tip-' + tip.icon;
-      var iconSvg = tip.icon === 'ok'
-        ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>'
-        : tip.icon === 'warn'
-        ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
-        : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+      if (diskPct < 30) {
+        tips.push({ icon: 'ok', text: 'Banco de dados com bastante espaço em disco disponível.' });
+      } else if (diskPct >= 70) {
+        tips.push({ icon: 'warn', text: 'Disco próximo do limite! Limpe cards antigos finalizados.' });
+      }
 
-      var item = document.createElement('div');
-      item.className = 'boardinfo-tip-item';
-      item.innerHTML = '<div class="boardinfo-tip-icon ' + iconClass + '">' + iconSvg + '</div><span>' + tip.text + '</span>';
-      tipsList.appendChild(item);
+      tips.push({ icon: 'info', text: data.columns.total + ' colunas ativas (' + data.columns.custom + ' customizadas).' });
+
+      if (data.cards.done > 0) {
+        tips.push({ icon: 'ok', text: data.cards.done + ' cartão(ões) concluído(s). Bom progresso!' });
+      }
+
+      tips.push({ icon: 'info', text: 'Hospedagem: Render Free Tier (512 MB RAM, disco efêmero).' });
+
+      tips.forEach(function (tip) {
+        var iconClass = 'tip-' + tip.icon;
+        var iconSvg = tip.icon === 'ok'
+          ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>'
+          : tip.icon === 'warn'
+          ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+          : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+
+        var item = document.createElement('div');
+        item.className = 'boardinfo-tip-item';
+        item.innerHTML = '<div class="boardinfo-tip-icon ' + iconClass + '">' + iconSvg + '</div><span>' + tip.text + '</span>';
+        tipsList.appendChild(item);
+      });
     });
   }
 
