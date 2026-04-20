@@ -1248,9 +1248,9 @@ app.get('/api/stats/board-info', requireAuth, (req, res) => {
     const customCols = db.prepare("SELECT COUNT(*) as c FROM custom_columns").get().c;
     const totalCols = 6 + customCols; // 6 padrão
 
-    // Limites Render Free Tier
+    // Limites Render Starter ($7/mês)
     const RENDER_RAM_MB = 512;
-    const RENDER_DISK_MB = 1024; // ~1 GB disco efêmero
+    const RENDER_DISK_MB = 1024; // 1 GB disco persistente
 
     res.json({
       ok: true,

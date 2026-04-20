@@ -2676,7 +2676,7 @@
         tips.push({ icon: 'ok', text: data.cards.done + ' cartão(ões) concluído(s). Bom progresso!' });
       }
 
-      tips.push({ icon: 'info', text: 'Hospedagem: Render Free Tier (512 MB RAM, disco efêmero).' });
+      tips.push({ icon: 'info', text: 'Hospedagem: Render Starter ($7/mês) — 512 MB RAM, disco persistente, sempre online.' });
 
       tips.forEach(function (tip) {
         var iconClass = 'tip-' + tip.icon;
