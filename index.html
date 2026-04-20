@@ -421,7 +421,7 @@
       </svg>
       <span>Planejador</span>
     </button>
-    <button class="nav-tab active">
+    <button class="nav-tab active" id="navQuadro">
       <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="3" width="7" height="9" rx="1.5" fill="rgba(87,157,255,.2)"/>
         <rect x="14" y="3" width="7" height="5" rx="1.5" fill="rgba(87,157,255,.2)"/>
@@ -434,7 +434,7 @@
       </svg>
       <span>Quadro</span>
     </button>
-    <button class="nav-tab">
+    <button class="nav-tab" id="navBoardInfo">
       <svg class="nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
         <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
@@ -629,6 +629,133 @@
             <button class="planner-modal-save" id="plannerEvSave">Salvar</button>
             <button class="planner-modal-cancel" id="plannerEvCancel">Cancelar</button>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOARD INFO / GESTÃO DE MEMÓRIA -->
+  <div class="boardinfo-overlay" id="boardInfoOverlay">
+    <div class="boardinfo-panel">
+      <div class="boardinfo-header">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+            <polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+          </svg>
+          Gestão do Quadro
+        </h3>
+        <button class="boardinfo-close" id="boardInfoClose">&times;</button>
+      </div>
+      <div class="boardinfo-body">
+        <!-- Memória circular -->
+        <div class="boardinfo-section">
+          <div class="boardinfo-section-title">Memória em Uso</div>
+          <div class="boardinfo-circle-row">
+            <div class="boardinfo-circle-wrap">
+              <svg class="boardinfo-ring" viewBox="0 0 120 120">
+                <circle class="ring-bg" cx="60" cy="60" r="52"/>
+                <circle class="ring-fg" id="memRing" cx="60" cy="60" r="52"/>
+              </svg>
+              <div class="boardinfo-circle-label">
+                <span class="boardinfo-circle-pct" id="memPct">0%</span>
+                <span class="boardinfo-circle-sub">em uso</span>
+              </div>
+            </div>
+            <div class="boardinfo-circle-info">
+              <div class="boardinfo-info-line">
+                <span class="boardinfo-dot" style="background:var(--accent)"></span>
+                <span>Usado: <strong id="memUsed">0 KB</strong></span>
+              </div>
+              <div class="boardinfo-info-line">
+                <span class="boardinfo-dot" style="background:rgba(255,255,255,.15)"></span>
+                <span>Disponível: <strong id="memFree">0 KB</strong></span>
+              </div>
+              <div class="boardinfo-info-line boardinfo-total">
+                Total: <strong id="memTotal">0 KB</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Limite de cards -->
+        <div class="boardinfo-section">
+          <div class="boardinfo-section-title">Limite de Itens</div>
+          <div class="boardinfo-bar-wrap">
+            <div class="boardinfo-bar-header">
+              <span>Cards ocupados</span>
+              <span id="cardsLabel">0 / 500</span>
+            </div>
+            <div class="boardinfo-bar">
+              <div class="boardinfo-bar-fill" id="cardsFill" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="boardinfo-bar-wrap">
+            <div class="boardinfo-bar-header">
+              <span>Colunas ativas</span>
+              <span id="colsLabel">0 / 20</span>
+            </div>
+            <div class="boardinfo-bar">
+              <div class="boardinfo-bar-fill boardinfo-bar-purple" id="colsFill" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="boardinfo-bar-wrap">
+            <div class="boardinfo-bar-header">
+              <span>Anexos / Comentários</span>
+              <span id="attachLabel">0 / 1000</span>
+            </div>
+            <div class="boardinfo-bar">
+              <div class="boardinfo-bar-fill boardinfo-bar-green" id="attachFill" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dicas -->
+        <div class="boardinfo-section boardinfo-tips">
+          <div class="boardinfo-section-title">Dicas de Otimização</div>
+          <div class="boardinfo-tip" id="tipsList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KANBAN BOARD OVERLAY -->
+  <div class="kanban-overlay" id="kanbanOverlay">
+    <div class="kanban-panel">
+      <div class="kanban-header">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round">
+            <rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/>
+            <rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>
+          </svg>
+          Quadro Kanban
+        </h3>
+        <button class="kanban-close" id="kanbanClose">&times;</button>
+      </div>
+      <div class="kanban-board" id="kanbanBoard">
+        <div class="kanban-column" data-status="todo">
+          <div class="kanban-col-header kanban-col-todo">
+            <span class="kanban-col-dot" style="background:#579DFF"></span>
+            <span>A fazer</span>
+            <span class="kanban-col-count" id="kanbanCountTodo">0</span>
+          </div>
+          <div class="kanban-col-body" id="kanbanTodo"></div>
+        </div>
+        <div class="kanban-column" data-status="doing">
+          <div class="kanban-col-header kanban-col-doing">
+            <span class="kanban-col-dot" style="background:#F2D600"></span>
+            <span>Em andamento</span>
+            <span class="kanban-col-count" id="kanbanCountDoing">0</span>
+          </div>
+          <div class="kanban-col-body" id="kanbanDoing"></div>
+        </div>
+        <div class="kanban-column" data-status="done">
+          <div class="kanban-col-header kanban-col-done">
+            <span class="kanban-col-dot" style="background:#61BD4F"></span>
+            <span>Concluído</span>
+            <span class="kanban-col-count" id="kanbanCountDone">0</span>
+          </div>
+          <div class="kanban-col-body" id="kanbanDone"></div>
         </div>
       </div>
     </div>

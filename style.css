@@ -1919,3 +1919,211 @@ body {
   .dash-cards { grid-template-columns: repeat(2, 1fr); }
   .dash-bar-label { width: 90px; font-size: .75rem; }
 }
+
+/* ===== KANBAN BOARD ===== */
+.kanban-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.6); backdrop-filter: blur(6px);
+  justify-content: center; align-items: flex-start; padding: 40px 20px;
+}
+.kanban-overlay.active { display: flex; }
+.kanban-panel {
+  width: 100%; max-width: 1200px;
+  background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  border: 1px solid var(--glass-border); border-radius: var(--radius);
+  box-shadow: var(--glass-shadow); display: flex; flex-direction: column;
+  max-height: calc(100vh - 80px); overflow: hidden;
+}
+.kanban-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--glass-border);
+}
+.kanban-header h3 { display: flex; align-items: center; gap: 8px; font-size: 1.1rem; font-weight: 600; }
+.kanban-close {
+  background: none; border: none; color: var(--text-muted); font-size: 1.6rem;
+  cursor: pointer; line-height: 1; padding: 4px 8px; border-radius: 6px;
+}
+.kanban-close:hover { color: var(--text); background: rgba(255,255,255,.08); }
+
+.kanban-board {
+  display: flex; gap: 16px; padding: 20px; overflow-x: auto; flex: 1;
+  min-height: 0;
+}
+.kanban-column {
+  flex: 1; min-width: 280px; max-width: 400px;
+  display: flex; flex-direction: column;
+  background: rgba(255,255,255,.03); border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+}
+.kanban-col-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 14px; font-weight: 600; font-size: .9rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+.kanban-col-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.kanban-col-count {
+  margin-left: auto; font-size: .75rem; font-weight: 500;
+  background: rgba(255,255,255,.08); color: var(--text-muted);
+  padding: 2px 8px; border-radius: 10px;
+}
+.kanban-col-body {
+  flex: 1; overflow-y: auto; padding: 10px; display: flex;
+  flex-direction: column; gap: 8px; min-height: 60px;
+}
+
+.kanban-card {
+  background: var(--bg-card); border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm); padding: 12px; cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+}
+.kanban-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,.3);
+}
+.kanban-card-top {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+}
+.kanban-card-avatar {
+  width: 28px; height: 28px; border-radius: 50%; display: flex;
+  align-items: center; justify-content: center; font-size: .7rem;
+  font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.kanban-card-name { font-weight: 600; font-size: .85rem; flex: 1; }
+.kanban-card-badge {
+  font-size: .65rem; font-weight: 600; padding: 2px 8px;
+  border-radius: 6px; text-transform: uppercase; letter-spacing: .3px;
+}
+.kanban-card-badge.kb-normal { background: rgba(87,157,255,.15); color: #579DFF; }
+.kanban-card-badge.kb-preferencial { background: rgba(97,189,79,.15); color: #61BD4F; }
+.kanban-card-badge.kb-autorizacao { background: rgba(242,214,0,.15); color: #F2D600; }
+.kanban-card-meta {
+  display: flex; align-items: center; gap: 6px;
+  color: var(--text-muted); font-size: .75rem; margin-top: 4px;
+}
+.kanban-card-col {
+  font-size: .65rem; padding: 2px 6px; border-radius: 4px;
+  background: rgba(255,255,255,.06); color: var(--text-muted);
+}
+
+@media (max-width: 700px) {
+  .kanban-board { flex-direction: column; }
+  .kanban-column { max-width: 100%; min-width: unset; }
+}
+
+/* ===== BOARD INFO / GESTÃO DE MEMÓRIA ===== */
+.boardinfo-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.6); backdrop-filter: blur(6px);
+  justify-content: center; align-items: flex-start; padding: 50px 20px;
+}
+.boardinfo-overlay.active { display: flex; }
+.boardinfo-panel {
+  width: 100%; max-width: 520px;
+  background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  border: 1px solid var(--glass-border); border-radius: var(--radius);
+  box-shadow: var(--glass-shadow); display: flex; flex-direction: column;
+  max-height: calc(100vh - 100px); overflow: hidden;
+  animation: boardInfoIn .25s ease-out;
+}
+@keyframes boardInfoIn {
+  from { opacity: 0; transform: translateY(-20px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.boardinfo-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px; border-bottom: 1px solid var(--glass-border);
+}
+.boardinfo-header h3 { display: flex; align-items: center; gap: 10px; font-size: 1.1rem; font-weight: 600; }
+.boardinfo-close {
+  background: none; border: none; color: var(--text-muted); font-size: 1.6rem;
+  cursor: pointer; line-height: 1; padding: 4px 8px; border-radius: 6px;
+}
+.boardinfo-close:hover { color: var(--text); background: rgba(255,255,255,.08); }
+.boardinfo-body {
+  padding: 20px 22px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px;
+}
+.boardinfo-section {}
+.boardinfo-section-title {
+  font-size: .8rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .6px; color: var(--text-muted); margin-bottom: 14px;
+}
+
+/* Circle gauge */
+.boardinfo-circle-row {
+  display: flex; align-items: center; gap: 24px;
+}
+.boardinfo-circle-wrap {
+  position: relative; width: 120px; height: 120px; flex-shrink: 0;
+}
+.boardinfo-ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring-bg { fill: none; stroke: rgba(255,255,255,.07); stroke-width: 10; }
+.ring-fg {
+  fill: none; stroke: var(--accent); stroke-width: 10;
+  stroke-linecap: round; stroke-dasharray: 326.73; stroke-dashoffset: 326.73;
+  transition: stroke-dashoffset .8s ease;
+}
+.boardinfo-circle-label {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.boardinfo-circle-pct { font-size: 1.5rem; font-weight: 700; line-height: 1; }
+.boardinfo-circle-sub { font-size: .65rem; color: var(--text-muted); margin-top: 2px; }
+
+.boardinfo-circle-info { display: flex; flex-direction: column; gap: 8px; }
+.boardinfo-info-line { display: flex; align-items: center; gap: 8px; font-size: .85rem; }
+.boardinfo-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.boardinfo-total { font-size: .75rem; color: var(--text-muted); margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--glass-border); }
+
+/* Progress bars */
+.boardinfo-bar-wrap { margin-bottom: 14px; }
+.boardinfo-bar-wrap:last-child { margin-bottom: 0; }
+.boardinfo-bar-header {
+  display: flex; justify-content: space-between; font-size: .82rem;
+  margin-bottom: 6px; color: var(--text);
+}
+.boardinfo-bar {
+  height: 10px; background: rgba(255,255,255,.07);
+  border-radius: 6px; overflow: hidden;
+}
+.boardinfo-bar-fill {
+  height: 100%; border-radius: 6px;
+  background: linear-gradient(90deg, #579DFF, #3b7ce0);
+  transition: width .8s ease;
+  min-width: 0;
+}
+.boardinfo-bar-fill.boardinfo-bar-purple {
+  background: linear-gradient(90deg, #c377e0, #9b4dca);
+}
+.boardinfo-bar-fill.boardinfo-bar-green {
+  background: linear-gradient(90deg, #61BD4F, #3d9140);
+}
+.boardinfo-bar-fill.bar-warning {
+  background: linear-gradient(90deg, #F2D600, #d4a600);
+}
+.boardinfo-bar-fill.bar-danger {
+  background: linear-gradient(90deg, #eb5a46, #c0392b);
+}
+
+/* Tips */
+.boardinfo-tips {}
+.boardinfo-tip-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px; border-radius: var(--radius-sm);
+  background: rgba(255,255,255,.03); border: 1px solid var(--glass-border);
+  margin-bottom: 8px; font-size: .82rem; line-height: 1.45;
+}
+.boardinfo-tip-item:last-child { margin-bottom: 0; }
+.boardinfo-tip-icon {
+  flex-shrink: 0; width: 22px; height: 22px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .75rem;
+}
+.tip-ok { background: rgba(97,189,79,.15); color: #61BD4F; }
+.tip-warn { background: rgba(242,214,0,.15); color: #F2D600; }
+.tip-info { background: rgba(87,157,255,.15); color: #579DFF; }
+
+@media (max-width: 500px) {
+  .boardinfo-circle-row { flex-direction: column; align-items: flex-start; }
+}

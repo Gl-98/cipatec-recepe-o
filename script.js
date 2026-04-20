@@ -2461,4 +2461,294 @@
     return hash;
   }
 
+  /* ===== KANBAN BOARD (Quadro) ===== */
+  var kanbanOverlay = document.getElementById('kanbanOverlay');
+  var kanbanClose = document.getElementById('kanbanClose');
+  var navQuadro = document.getElementById('navQuadro');
+
+  // Mapeamento: quais colunas pertencem a cada status Kanban
+  var KANBAN_MAP = {
+    todo: ['normal', 'preferencial', 'autorizacao'],       // A fazer
+    doing: ['medico'],                                      // Em andamento
+    done: ['finalizado']                                    // Concluído
+  };
+
+  // Incluir colunas customizadas em "A fazer"
+  function getKanbanMap() {
+    var map = {
+      todo: ['normal', 'preferencial', 'autorizacao'],
+      doing: ['medico'],
+      done: ['finalizado']
+    };
+    COLUMNS.forEach(function (c) {
+      if (c.custom) map.todo.push(c.id);
+    });
+    return map;
+  }
+
+  function renderKanban() {
+    var map = getKanbanMap();
+    var todoCards = [], doingCards = [], doneCards = [];
+
+    Object.keys(state.cards).forEach(function (colId) {
+      var cards = state.cards[colId] || [];
+      cards.forEach(function (card) {
+        if (card.fixed) return; // ignora modelos
+        var item = { card: card, colId: colId };
+        if (map.done.indexOf(colId) !== -1 || card.done) {
+          doneCards.push(item);
+        } else if (map.doing.indexOf(colId) !== -1) {
+          doingCards.push(item);
+        } else {
+          todoCards.push(item);
+        }
+      });
+    });
+
+    renderKanbanColumn('kanbanTodo', todoCards, 'kanbanCountTodo');
+    renderKanbanColumn('kanbanDoing', doingCards, 'kanbanCountDoing');
+    renderKanbanColumn('kanbanDone', doneCards, 'kanbanCountDone');
+  }
+
+  function renderKanbanColumn(containerId, items, countId) {
+    var container = document.getElementById(containerId);
+    var countEl = document.getElementById(countId);
+    container.innerHTML = '';
+    countEl.textContent = items.length;
+
+    if (items.length === 0) {
+      container.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:.8rem;padding:20px 0;">Nenhum cartão</div>';
+      return;
+    }
+
+    items.forEach(function (item) {
+      var card = item.card;
+      var colId = item.colId;
+      var el = document.createElement('div');
+      el.className = 'kanban-card';
+
+      var avatarBg = card.avatarColor || '#579DFF';
+      var avatarLetters = card.avatar || '??';
+
+      // Badge de tipo
+      var tipoKey = (colId === 'preferencial') ? 'preferencial' : (colId === 'autorizacao') ? 'autorizacao' : 'normal';
+      var badgeClass = 'kb-' + tipoKey;
+      var badgeLabel = tipoKey === 'preferencial' ? 'Preferencial' : tipoKey === 'autorizacao' ? 'Autorização' : 'Normal';
+
+      // Encontra o nome da coluna original
+      var colTitle = colId;
+      COLUMNS.forEach(function (c) { if (c.id === colId) colTitle = c.title; });
+
+      el.innerHTML =
+        '<div class="kanban-card-top">' +
+          '<div class="kanban-card-avatar" style="background:' + avatarBg + '">' + escapeHtml(avatarLetters) + '</div>' +
+          '<span class="kanban-card-name">' + escapeHtml((card.senha || pad2(card.num)) + ' – ' + card.name) + '</span>' +
+          '<span class="kanban-card-badge ' + badgeClass + '">' + badgeLabel + '</span>' +
+        '</div>' +
+        '<div class="kanban-card-meta">' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' +
+          '<span>' + escapeHtml(card.date) + '</span>' +
+          '<span class="kanban-card-col">' + escapeHtml(colTitle) + '</span>' +
+        '</div>';
+
+      el.addEventListener('click', function () {
+        openCardDetail(card.id, colId);
+      });
+
+      container.appendChild(el);
+    });
+  }
+
+  if (navQuadro) {
+    navQuadro.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (kanbanOverlay.classList.contains('active')) {
+        kanbanOverlay.classList.remove('active');
+        boardEl.style.display = '';
+      } else {
+        kanbanOverlay.classList.add('active');
+        renderKanban();
+      }
+    });
+  }
+
+  if (kanbanClose) {
+    kanbanClose.addEventListener('click', function () {
+      kanbanOverlay.classList.remove('active');
+      boardEl.style.display = '';
+      document.querySelectorAll('.nav-tab').forEach(function (t) { t.classList.remove('active'); });
+      navQuadro.classList.add('active');
+    });
+  }
+
+  if (kanbanOverlay) {
+    kanbanOverlay.addEventListener('click', function (e) {
+      if (e.target === kanbanOverlay) {
+        kanbanOverlay.classList.remove('active');
+        boardEl.style.display = '';
+        document.querySelectorAll('.nav-tab').forEach(function (t) { t.classList.remove('active'); });
+        navQuadro.classList.add('active');
+      }
+    });
+  }
+
+  /* ===== BOARD INFO / GESTÃO DE MEMÓRIA ===== */
+  var boardInfoOverlay = document.getElementById('boardInfoOverlay');
+  var boardInfoClose = document.getElementById('boardInfoClose');
+  var navBoardInfo = document.getElementById('navBoardInfo');
+
+  var BOARD_LIMITS = {
+    maxCards: 500,
+    maxCols: 20,
+    maxAttach: 1000,
+    maxMemoryKB: 102400 // 100MB in KB
+  };
+
+  function formatBytes(kb) {
+    if (kb >= 1024) return (kb / 1024).toFixed(1) + ' MB';
+    return Math.round(kb) + ' KB';
+  }
+
+  function calcBoardStats() {
+    var totalCards = 0;
+    var doneCards = 0;
+    Object.keys(state.cards).forEach(function (colId) {
+      var cards = state.cards[colId] || [];
+      cards.forEach(function (card) {
+        if (card.fixed) return;
+        totalCards++;
+        if (card.done) doneCards++;
+      });
+    });
+
+    var totalCols = COLUMNS.length;
+    // Estimativa de memória: ~0.5KB por card base + nome + dados
+    var estimatedKB = totalCards * 1.2 + totalCols * 0.5 + 8; // base overhead
+
+    return {
+      totalCards: totalCards,
+      doneCards: doneCards,
+      totalCols: totalCols,
+      estimatedKB: estimatedKB,
+      attachEstimate: Math.round(totalCards * 1.5) // estimativa comentários/anexos
+    };
+  }
+
+  function renderBoardInfo() {
+    var stats = calcBoardStats();
+
+    // Memória circular
+    var memPct = Math.min((stats.estimatedKB / BOARD_LIMITS.maxMemoryKB) * 100, 100);
+    var circumference = 2 * Math.PI * 52; // ~326.73
+    var offset = circumference - (memPct / 100) * circumference;
+
+    var memRing = document.getElementById('memRing');
+    var memPctEl = document.getElementById('memPct');
+    var memUsed = document.getElementById('memUsed');
+    var memFree = document.getElementById('memFree');
+    var memTotal = document.getElementById('memTotal');
+
+    memRing.style.strokeDashoffset = offset;
+    memPctEl.textContent = Math.round(memPct) + '%';
+    memUsed.textContent = formatBytes(stats.estimatedKB);
+    memFree.textContent = formatBytes(BOARD_LIMITS.maxMemoryKB - stats.estimatedKB);
+    memTotal.textContent = formatBytes(BOARD_LIMITS.maxMemoryKB);
+
+    // Cor do anel baseado no uso
+    if (memPct > 80) memRing.style.stroke = 'var(--red)';
+    else if (memPct > 60) memRing.style.stroke = 'var(--orange)';
+    else memRing.style.stroke = 'var(--accent)';
+
+    // Cards bar
+    var cardsPct = Math.min((stats.totalCards / BOARD_LIMITS.maxCards) * 100, 100);
+    document.getElementById('cardsLabel').textContent = stats.totalCards + ' / ' + BOARD_LIMITS.maxCards;
+    var cardsFill = document.getElementById('cardsFill');
+    cardsFill.style.width = cardsPct + '%';
+    cardsFill.className = 'boardinfo-bar-fill' + (cardsPct > 80 ? ' bar-danger' : cardsPct > 60 ? ' bar-warning' : '');
+
+    // Columns bar
+    var colsPct = Math.min((stats.totalCols / BOARD_LIMITS.maxCols) * 100, 100);
+    document.getElementById('colsLabel').textContent = stats.totalCols + ' / ' + BOARD_LIMITS.maxCols;
+    var colsFill = document.getElementById('colsFill');
+    colsFill.style.width = colsPct + '%';
+    colsFill.className = 'boardinfo-bar-fill boardinfo-bar-purple' + (colsPct > 80 ? ' bar-danger' : '');
+
+    // Attachments bar
+    var attachPct = Math.min((stats.attachEstimate / BOARD_LIMITS.maxAttach) * 100, 100);
+    document.getElementById('attachLabel').textContent = stats.attachEstimate + ' / ' + BOARD_LIMITS.maxAttach;
+    var attachFill = document.getElementById('attachFill');
+    attachFill.style.width = attachPct + '%';
+    attachFill.className = 'boardinfo-bar-fill boardinfo-bar-green' + (attachPct > 80 ? ' bar-danger' : '');
+
+    // Tips
+    var tipsList = document.getElementById('tipsList');
+    tipsList.innerHTML = '';
+    var tips = [];
+
+    if (stats.totalCards === 0) {
+      tips.push({ icon: 'info', text: 'Nenhum cartão no quadro. Comece criando seu primeiro cartão!' });
+    }
+    if (cardsPct < 30) {
+      tips.push({ icon: 'ok', text: 'Uso de cards está saudável. Você tem bastante espaço disponível.' });
+    }
+    if (cardsPct >= 30 && cardsPct < 70) {
+      tips.push({ icon: 'info', text: 'Uso moderado. Considere finalizar cards antigos para liberar espaço.' });
+    }
+    if (cardsPct >= 70) {
+      tips.push({ icon: 'warn', text: 'Atenção! Próximo do limite de cards. Finalize ou arquive cartões concluídos.' });
+    }
+    if (stats.doneCards > 0) {
+      tips.push({ icon: 'ok', text: stats.doneCards + ' cartão(ões) concluído(s). Bom progresso!' });
+    }
+    if (stats.totalCols > 10) {
+      tips.push({ icon: 'warn', text: 'Muitas colunas ativas. Considere consolidar para melhor organização.' });
+    } else {
+      tips.push({ icon: 'ok', text: 'Quantidade de colunas adequada para boa visibilidade.' });
+    }
+
+    tips.forEach(function (tip) {
+      var iconClass = 'tip-' + tip.icon;
+      var iconSvg = tip.icon === 'ok'
+        ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>'
+        : tip.icon === 'warn'
+        ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+        : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+
+      var item = document.createElement('div');
+      item.className = 'boardinfo-tip-item';
+      item.innerHTML = '<div class="boardinfo-tip-icon ' + iconClass + '">' + iconSvg + '</div><span>' + tip.text + '</span>';
+      tipsList.appendChild(item);
+    });
+  }
+
+  if (navBoardInfo) {
+    navBoardInfo.addEventListener('click', function (e) {
+      e.preventDefault();
+      boardInfoOverlay.classList.add('active');
+      document.querySelectorAll('.nav-tab').forEach(function (t) { t.classList.remove('active'); });
+      navBoardInfo.classList.add('active');
+      renderBoardInfo();
+    });
+  }
+
+  if (boardInfoClose) {
+    boardInfoClose.addEventListener('click', function () {
+      boardInfoOverlay.classList.remove('active');
+      document.querySelectorAll('.nav-tab').forEach(function (t) { t.classList.remove('active'); });
+      var quadroTab = document.getElementById('navQuadro');
+      if (quadroTab) quadroTab.classList.add('active');
+    });
+  }
+
+  if (boardInfoOverlay) {
+    boardInfoOverlay.addEventListener('click', function (e) {
+      if (e.target === boardInfoOverlay) {
+        boardInfoOverlay.classList.remove('active');
+        document.querySelectorAll('.nav-tab').forEach(function (t) { t.classList.remove('active'); });
+        var quadroTab = document.getElementById('navQuadro');
+        if (quadroTab) quadroTab.classList.add('active');
+      }
+    });
+  }
+
 })();
