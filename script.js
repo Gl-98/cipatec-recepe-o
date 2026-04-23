@@ -1645,7 +1645,11 @@
         if (btn.dataset.confirm) {
           api('DELETE', '/api/users/' + encodeURIComponent(m.id)).then(function (resp) {
             if (resp.ok) {
-              loadMembers();
+              if (resp.logout) {
+                window.location.href = '/login.html';
+              } else {
+                loadMembers();
+              }
             } else {
               alert(resp.error || 'Erro ao remover');
             }
