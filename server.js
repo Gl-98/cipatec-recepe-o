@@ -212,9 +212,6 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET &&
     const email = profile.emails && profile.emails[0] ? profile.emails[0].value.toLowerCase() : null;
     if (!email) return done(null, false);
 
-    const isDeleted = db.prepare('SELECT 1 FROM deleted_emails WHERE email = ?').get(email);
-    if (isDeleted) return done(null, false);
-
     let user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
     if (!user) {
       // Cria conta automática com senha aleatória
@@ -245,9 +242,6 @@ if (process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET &&
   }, (accessToken, refreshToken, profile, done) => {
     const email = profile.emails && profile.emails[0] ? profile.emails[0].value.toLowerCase() : null;
     if (!email) return done(null, false);
-
-    const isDeleted = db.prepare('SELECT 1 FROM deleted_emails WHERE email = ?').get(email);
-    if (isDeleted) return done(null, false);
 
     let user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
     if (!user) {
@@ -381,9 +375,6 @@ app.delete('/api/users/:id', requireAuth, (req, res) => {
 
   const target = db.prepare('SELECT id, name, email FROM users WHERE id = ?').get(targetId);
   if (!target) return res.status(404).json({ error: 'Usuário não encontrado' });
-
-  // Registra o email na blocklist para impedir recriação via OAuth
-  db.prepare('INSERT OR IGNORE INTO deleted_emails (email) VALUES (?)').run(target.email.trim().toLowerCase());
 
   // Remove o usuário
   db.prepare('DELETE FROM users WHERE id = ?').run(targetId);
