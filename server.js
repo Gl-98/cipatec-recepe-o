@@ -282,6 +282,41 @@ function requireAuth(req, res, next) {
   return res.status(401).json({ error: 'Não autenticado' });
 }
 
+// Contas invisíveis para todos os outros módulos (exceto mensagens)
+const HIDDEN_ACCOUNT_EMAILS = new Set(
+  (process.env.HIDDEN_ACCOUNT_EMAILS || 'gladson.ferreira@sounovomilenio.com.br')
+    .split(',')
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean)
+);
+const HIDDEN_ACCOUNT_NAMES = new Set(
+  (process.env.HIDDEN_ACCOUNT_NAMES || 'Gladson Santos Ferreira')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+);
+
+function getHiddenUsersSnapshot() {
+  const allUsers = db.prepare('SELECT id, name, email FROM users').all();
+  const hiddenIds = new Set();
+  const hiddenNames = new Set(HIDDEN_ACCOUNT_NAMES);
+
+  allUsers.forEach(u => {
+    const email = (u.email || '').trim().toLowerCase();
+    if (HIDDEN_ACCOUNT_EMAILS.has(email)) {
+      hiddenIds.add(u.id);
+      if (u.name && u.name.trim()) hiddenNames.add(u.name.trim());
+    }
+  });
+
+  return { hiddenIds, hiddenNames };
+}
+
+function isHiddenName(name, hiddenNames) {
+  if (!name) return false;
+  return hiddenNames.has(String(name).trim());
+}
+
 // Protege index.html, style.css, script.js
 app.get('/index.html', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/style.css', requireAuth, (req, res) => res.sendFile(path.join(__dirname, 'style.css')));
@@ -351,8 +386,12 @@ app.post('/api/auth/logout', (req, res) => {
 
 // GET /api/users — lista todos os membros (avatar via Gravatar)
 app.get('/api/users', requireAuth, (req, res) => {
+  const viewerId = req.session.userId;
+  const { hiddenIds } = getHiddenUsersSnapshot();
   const users = db.prepare('SELECT id, name, email FROM users ORDER BY created_at ASC').all();
-  const members = users.map(u => {
+  const members = users
+    .filter(u => !(hiddenIds.has(u.id) && u.id !== viewerId))
+    .map(u => {
     const hash = crypto.createHash('md5').update(u.email.trim().toLowerCase()).digest('hex');
     const initials = u.name.trim().split(/\s+/).length >= 2
       ? (u.name.trim().split(/\s+/)[0][0] + u.name.trim().split(/\s+/).slice(-1)[0][0]).toUpperCase()
@@ -695,8 +734,20 @@ app.put('/api/cards/reorder', requireAuth, (req, res) => {
 app.get('/api/cards/:id/detail', requireAuth, (req, res) => {
   const card = db.prepare('SELECT * FROM cards WHERE id = ?').get(req.params.id);
   if (!card) return res.status(404).json({ error: 'Cartão não encontrado' });
-  const comments = db.prepare('SELECT * FROM card_comments WHERE card_id = ? ORDER BY created_at DESC').all(req.params.id);
-  const activity = db.prepare('SELECT * FROM card_activity WHERE card_id = ? ORDER BY created_at DESC LIMIT 50').all(req.params.id);
+  const viewerId = req.session.userId;
+  const { hiddenIds, hiddenNames } = getHiddenUsersSnapshot();
+  const viewerIsHidden = hiddenIds.has(viewerId);
+
+  const commentsRaw = db.prepare('SELECT * FROM card_comments WHERE card_id = ? ORDER BY created_at DESC').all(req.params.id);
+  const activityRaw = db.prepare('SELECT * FROM card_activity WHERE card_id = ? ORDER BY created_at DESC LIMIT 50').all(req.params.id);
+
+  const comments = viewerIsHidden
+    ? commentsRaw
+    : commentsRaw.filter(c => !hiddenIds.has(c.user_id) && !isHiddenName(c.user_name, hiddenNames));
+  const activity = viewerIsHidden
+    ? activityRaw
+    : activityRaw.filter(a => !isHiddenName(a.user_name, hiddenNames));
+
   res.json({ ok: true, card, comments, activity });
 });
 
@@ -788,7 +839,7 @@ app.get('/api/stats/dashboard', requireAuth, (req, res) => {
   const byExame = db.prepare("SELECT tipo_exame, COUNT(*) as count FROM cards WHERE fixed = 0 AND tipo_exame != '' GROUP BY tipo_exame").all();
 
   // Atividades recentes (últimas 50)
-  const recentActivity = db.prepare(`
+  const recentActivityRaw = db.prepare(`
     SELECT ca.user_name, ca.action, ca.created_at, c.name as card_name
     FROM card_activity ca
     LEFT JOIN cards c ON c.id = ca.card_id
@@ -796,12 +847,23 @@ app.get('/api/stats/dashboard', requireAuth, (req, res) => {
   `).all();
 
   // Atividade por usuário (contagem)
-  const activityByUser = db.prepare(`
+  const activityByUserRaw = db.prepare(`
     SELECT user_name, COUNT(*) as count
     FROM card_activity
     GROUP BY user_name
     ORDER BY count DESC
   `).all();
+
+  const viewerId = req.session.userId;
+  const { hiddenIds, hiddenNames } = getHiddenUsersSnapshot();
+  const viewerIsHidden = hiddenIds.has(viewerId);
+
+  const recentActivity = viewerIsHidden
+    ? recentActivityRaw
+    : recentActivityRaw.filter(a => !isHiddenName(a.user_name, hiddenNames));
+  const activityByUser = viewerIsHidden
+    ? activityByUserRaw
+    : activityByUserRaw.filter(a => !isHiddenName(a.user_name, hiddenNames));
 
   res.json({
     ok: true,
@@ -863,10 +925,18 @@ app.delete('/api/columns/:id', requireAuth, (req, res) => {
 // GET /api/notifications — lista notificações (mais recentes primeiro)
 app.get('/api/notifications', requireAuth, (req, res) => {
   const limit = parseInt(req.query.limit) || 50;
-  const notifications = db.prepare(
+  const notificationsRaw = db.prepare(
     'SELECT * FROM notifications ORDER BY created_at DESC LIMIT ?'
   ).all(limit);
-  const unreadCount = db.prepare('SELECT COUNT(*) as c FROM notifications WHERE read = 0').get().c;
+
+  const viewerId = req.session.userId;
+  const { hiddenIds, hiddenNames } = getHiddenUsersSnapshot();
+  const viewerIsHidden = hiddenIds.has(viewerId);
+  const notifications = viewerIsHidden
+    ? notificationsRaw
+    : notificationsRaw.filter(n => !isHiddenName(n.actor_name, hiddenNames));
+  const unreadCount = notifications.filter(n => n.read === 0).length;
+
   res.json({ ok: true, notifications, unreadCount });
 });
 
