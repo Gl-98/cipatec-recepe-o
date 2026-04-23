@@ -416,13 +416,13 @@ app.delete('/api/users/:id', requireAuth, (req, res) => {
     const target = db.prepare('SELECT id, name, email FROM users WHERE id = ?').get(targetId);
     if (!target) return res.status(404).json({ error: 'Usuário não encontrado' });
 
-    // Remove TODOS os dados relacionados ao usuário antes de deletá-lo
+    // Remove dados relacionados ao usuário (evita FOREIGN KEY constraint)
+    db.prepare('DELETE FROM card_comments WHERE user_id = ?').run(targetId);
     db.prepare('DELETE FROM messages WHERE from_user_id = ? OR to_user_id = ?').run(targetId, targetId);
     db.prepare('DELETE FROM calendar_connections WHERE user_id = ?').run(targetId);
     db.prepare('DELETE FROM planner_events WHERE user_id = ?').run(targetId);
-    db.prepare('DELETE FROM card_comments WHERE user_id = ?').run(targetId);
     
-    // Agora pode remover o usuário
+    // Remove o usuário
     db.prepare('DELETE FROM users WHERE id = ?').run(targetId);
     
     // Registra o email deletado para impedir recriação via OAuth
