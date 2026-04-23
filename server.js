@@ -409,29 +409,38 @@ app.get('/api/users', requireAuth, (req, res) => {
 
 // DELETE /api/users/:id — remove conta de um membro
 app.delete('/api/users/:id', requireAuth, (req, res) => {
-  const targetId = parseInt(req.params.id, 10);
-  if (isNaN(targetId)) return res.status(400).json({ error: 'ID inválido' });
+  try {
+    const targetId = parseInt(req.params.id, 10);
+    if (isNaN(targetId)) return res.status(400).json({ error: 'ID inválido' });
 
-  const target = db.prepare('SELECT id, name, email FROM users WHERE id = ?').get(targetId);
-  if (!target) return res.status(404).json({ error: 'Usuário não encontrado' });
+    const target = db.prepare('SELECT id, name, email FROM users WHERE id = ?').get(targetId);
+    if (!target) return res.status(404).json({ error: 'Usuário não encontrado' });
 
-  // Remove o usuário
-  db.prepare('DELETE FROM users WHERE id = ?').run(targetId);
+    // Remove o usuário
+    db.prepare('DELETE FROM users WHERE id = ?').run(targetId);
+    
+    // Registra o email deletado para impedir recriação via OAuth
+    db.prepare('INSERT OR IGNORE INTO deleted_emails (email) VALUES (?)').run(target.email);
 
-  // Notificação
-  const actorName = req.session.userName || 'Alguém';
-  notify('member_removed', actorName + ' removeu o membro "' + target.name + '"', { actorName });
+    // Notificação
+    const actorName = req.session.userName || 'Alguém';
+    notify('member_removed', actorName + ' removeu o membro "' + target.name + '"', { actorName });
 
-  // Se o usuário deletou a própria conta, encerra a sessão
-  const isSelf = req.session.userId === targetId;
-  if (isSelf) {
-    return req.session.destroy(() => {
-      res.clearCookie('connect.sid');
-      res.json({ ok: true, logout: true });
-    });
+    // Se o usuário deletou a própria conta, encerra a sessão
+    const isSelf = req.session.userId === targetId;
+    if (isSelf) {
+      return req.session.destroy((err) => {
+        if (err) console.error('Erro ao destruir sessão:', err);
+        res.clearCookie('connect.sid');
+        res.json({ ok: true, logout: true });
+      });
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Erro ao deletar usuário:', err);
+    res.status(500).json({ error: 'Erro ao remover conta: ' + err.message });
   }
-
-  res.json({ ok: true });
 });
 
 // GET /api/auth/me — retorna dados do usuário logado

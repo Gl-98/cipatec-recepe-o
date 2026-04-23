@@ -1643,16 +1643,31 @@
         e.stopPropagation();
         var btn = this;
         if (btn.dataset.confirm) {
+          btn.disabled = true;
+          btn.textContent = 'Removendo...';
           api('DELETE', '/api/users/' + encodeURIComponent(m.id)).then(function (resp) {
             if (resp.ok) {
               if (resp.logout) {
+                alert('Sua conta foi removida. Você será redirecionado para a página de login.');
                 window.location.href = '/login.html';
               } else {
+                alert('Membro removido com sucesso.');
                 loadMembers();
               }
             } else {
-              alert(resp.error || 'Erro ao remover');
+              btn.disabled = false;
+              btn.removeAttribute('data-confirm');
+              btn.textContent = 'Remover';
+              btn.classList.remove('confirm');
+              alert(resp.error || 'Erro ao remover membro. Tente novamente.');
             }
+          }).catch(function (err) {
+            btn.disabled = false;
+            btn.removeAttribute('data-confirm');
+            btn.textContent = 'Remover';
+            btn.classList.remove('confirm');
+            alert('Erro de conexão ao remover membro: ' + err.message);
+            console.error('Erro ao remover:', err);
           });
         } else {
           btn.dataset.confirm = '1';
